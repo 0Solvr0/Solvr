@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solvr — friendly Rubik's Cube solver</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CjxyZWN0IHg9IjIiIHk9IjIiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcng9IjE1IiBmaWxsPSIjMmMyNjIwIi8+CjxnPgo8cmVjdCB4PSI5IiAgeT0iOSIgIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iI2U2MzMyOSIvPgo8cmVjdCB4PSIyNSIgeT0iOSIgIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iI2ZiZmJmNyIvPgo8cmVjdCB4PSI0MSIgeT0iOSIgIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iIzFmYWE0ZCIvPgo8cmVjdCB4PSI5IiAgeT0iMjUiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iI2ZmZDIxZiIvPgo8cmVjdCB4PSIyNSIgeT0iMjUiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iIzJhNmZlMCIvPgo8cmVjdCB4PSI0MSIgeT0iMjUiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iI2U2MzMyOSIvPgo8cmVjdCB4PSI5IiAgeT0iNDEiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iI2ZiZmJmNyIvPgo8cmVjdCB4PSIyNSIgeT0iNDEiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iI2ZmN2ExOCIvPgo8cmVjdCB4PSI0MSIgeT0iNDEiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgcng9IjMuMiIgZmlsbD0iI2ZmZDIxZiIvPgo8L2c+Cjwvc3ZnPgo=" />
 <meta name="description" content="Solvr solves a real Rubik's Cube from photos or by coloring a 3D model, then shows you the solution AND turns the cube for you step by step." />
 
 <!-- Friendly rounded fonts (system fallbacks defined in CSS) -->
@@ -125,16 +126,16 @@ h1{font-family:var(--font-display);font-weight:600;font-size:1.8rem;letter-spaci
    rows of 30px stickers follow — so all 3×3 = 9 stickers always show.
    (Previously the label stole a sticker row, hiding the bottom layer.) */
 .net{
-  --cell:22px;display:grid;gap:10px;justify-content:center;margin:8px auto 0;width:max-content;
-  grid-template-columns:repeat(4, calc(var(--cell)*3 + 6px));
+  --cell:20px;display:grid;gap:7px;justify-content:center;justify-items:center;margin:8px auto 0;width:max-content;
+  grid-template-columns:repeat(4, calc(var(--cell)*3 + 14px));   /* 3 cells + 2 inner gaps(6) + 2 padding(8) */
   grid-template-areas:". U . ." "L F R B" ". D . .";
 }
-@media (max-width:520px){.net{--cell:18px}}
+@media (max-width:520px){.net{--cell:16px}}
 .face{
   display:grid;
   grid-template-columns:repeat(3,var(--cell));
   grid-template-rows:auto repeat(3,var(--cell));   /* label row + 3 sticker rows */
-  gap:3px;padding:5px;background:#efe4d3;border-radius:10px;
+  gap:3px;padding:4px;background:#efe4d3;border-radius:10px;
 }
 .face[data-face="U"]{grid-area:U}.face[data-face="L"]{grid-area:L}
 .face[data-face="F"]{grid-area:F}.face[data-face="R"]{grid-area:R}
