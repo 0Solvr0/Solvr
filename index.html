@@ -1,0 +1,3359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Solvr — friendly Rubik's Cube solver</title>
+<meta name="description" content="Solvr solves a real Rubik's Cube from photos or by coloring a 3D model, then shows you the solution AND turns the cube for you step by step." />
+
+<!-- Friendly rounded fonts (system fallbacks defined in CSS) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   DESIGN TOKENS — "Solvr"
+   Warm, welcoming light theme: soft cream paper, rounded friendly
+   type, a sunny coral accent. The six saturated sticker colors stay
+   vivid so the cube always reads clearly against the soft backdrop.
+   ============================================================ */
+:root{
+  --bg:#fcf6ee;          /* warm cream paper */
+  --panel:#ffffff;       /* card surface */
+  --panel-2:#fbf1e4;     /* soft raised surface */
+  --line:#ecdfce;        /* gentle hairline borders */
+  --text:#4b4239;        /* warm ink */
+  --muted:#9a8c7b;       /* secondary text */
+  --accent:#ff7a59;      /* sunny coral — the friendly accent */
+  --accent-2:#ff9472;    /* coral hover */
+  --accent-ink:#ffffff;  /* text on coral */
+  --accent-soft:#ffe7dc; /* coral tint for highlights */
+  --danger:#e0573c;      /* error */
+  --ok:#2aa56a;          /* success */
+
+  /* The six physical cube colors (vivid, slightly glossy) */
+  --c-W:#fbfbf7; --c-Y:#ffd21f; --c-R:#e63329;
+  --c-O:#ff7a18; --c-B:#2a6fe0; --c-G:#1faa4d;
+  --c-X:#ece2d3;         /* uncolored sticker (soft warm gray) */
+
+  --radius:18px;
+  --font-display:'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-body:'Nunito', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:
+    radial-gradient(900px 520px at 88% -8%, #fff3e3 0%, transparent 60%),
+    radial-gradient(820px 520px at -5% 0%, #fdeee0 0%, transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:30px 20px 80px}
+
+/* ---------- Header ---------- */
+header{display:flex;align-items:center;gap:15px;margin-bottom:6px}
+.logo{
+  width:46px;height:46px;border-radius:12px;flex:0 0 auto;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  gap:2.5px;padding:5px;background:#2c2620;
+  box-shadow:0 6px 16px rgba(120,86,54,.22), inset 0 0 0 1px rgba(0,0,0,.25);
+}
+.logo i{border-radius:3px}
+h1{font-family:var(--font-display);font-weight:600;font-size:1.8rem;letter-spacing:-.01em;margin:0;line-height:1;color:#3f3730}
+.sub{color:var(--muted);font-size:.9rem;margin-top:4px;max-width:62ch}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:8px;margin:24px 0 20px;border-bottom:2px solid var(--line)}
+.tab{
+  appearance:none;background:none;border:0;color:var(--muted);
+  font-family:var(--font-display);font-weight:500;font-size:1.02rem;letter-spacing:0;
+  padding:12px 18px;cursor:pointer;position:relative;border-radius:12px 12px 0 0;
+  transition:color .15s ease, background .15s ease;
+}
+.tab:hover{color:var(--text);background:var(--panel-2)}
+.tab[aria-selected="true"]{color:var(--accent)}
+.tab[aria-selected="true"]::after{
+  content:"";position:absolute;left:12px;right:12px;bottom:-2px;height:3px;
+  background:var(--accent);border-radius:3px;
+}
+.tab:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ---------- Layout ---------- */
+.panel[hidden]{display:none}
+.grid{display:grid;grid-template-columns:1fr 372px;gap:22px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+.card{
+  background:var(--panel);
+  border:1.5px solid var(--line);border-radius:var(--radius);
+  padding:20px;
+  box-shadow:0 10px 30px rgba(150,110,70,.08);
+}
+.card h2{font-family:var(--font-display);font-weight:600;font-size:1.12rem;margin:0 0 5px;color:#3f3730}
+.card p.hint{color:var(--muted);font-size:.9rem;margin:0 0 15px}
+
+/* ---------- Color palette ---------- */
+.palette{display:flex;flex-wrap:wrap;gap:9px;margin:2px 0 6px}
+.swatch{
+  width:40px;height:40px;border-radius:12px;border:2px solid #fff;cursor:pointer;
+  position:relative;box-shadow:0 2px 6px rgba(120,86,54,.18), inset 0 0 0 1px rgba(0,0,0,.06);
+  transition:transform .1s ease;
+}
+.swatch:hover{transform:translateY(-2px)}
+.swatch[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:2px}
+.swatch:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.swatch.eraser{background:var(--c-X);display:grid;place-items:center;color:var(--muted);font-size:.8rem;font-weight:700}
+
+/* ---------- 3D cube host ---------- */
+#cube3d{
+  width:100%;aspect-ratio:1/1;max-height:460px;border-radius:16px;
+  background:radial-gradient(120% 120% at 50% 18%, #fff7ec 0%, #f4e7d4 72%);
+  border:1.5px solid var(--line);touch-action:none;cursor:crosshair;display:block;
+}
+.cube-fallback{display:none}
+
+/* ---------- 2D net editor (image correction + 3D fallback) ----------
+   FIX: the face label sits in its OWN auto-height row, then three full
+   rows of 30px stickers follow — so all 3×3 = 9 stickers always show.
+   (Previously the label stole a sticker row, hiding the bottom layer.) */
+.net{
+  --cell:22px;display:grid;gap:10px;justify-content:center;margin:8px auto 0;width:max-content;
+  grid-template-columns:repeat(4, calc(var(--cell)*3 + 6px));
+  grid-template-areas:". U . ." "L F R B" ". D . .";
+}
+@media (max-width:520px){.net{--cell:18px}}
+.face{
+  display:grid;
+  grid-template-columns:repeat(3,var(--cell));
+  grid-template-rows:auto repeat(3,var(--cell));   /* label row + 3 sticker rows */
+  gap:3px;padding:5px;background:#efe4d3;border-radius:10px;
+}
+.face[data-face="U"]{grid-area:U}.face[data-face="L"]{grid-area:L}
+.face[data-face="F"]{grid-area:F}.face[data-face="R"]{grid-area:R}
+.face[data-face="B"]{grid-area:B}.face[data-face="D"]{grid-area:D}
+.face .lbl{grid-column:1/4;text-align:center;color:#8a7c6b;font-size:.66rem;font-weight:800;letter-spacing:.1em;margin-bottom:2px}
+.cell{border-radius:6px;cursor:pointer;border:1px solid rgba(120,86,54,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45);transition:transform .08s}
+.cell:hover{transform:scale(1.08)}
+.cell.locked{cursor:not-allowed;box-shadow:inset 0 0 0 2px rgba(120,86,54,.28)}
+
+/* sticker color classes (shared by net + thumbnails) */
+.s-W{background:var(--c-W)}.s-Y{background:var(--c-Y)}.s-R{background:var(--c-R)}
+.s-O{background:var(--c-O)}.s-B{background:var(--c-B)}.s-G{background:var(--c-G)}
+.s-X{background:var(--c-X)}
+
+/* ---------- Buttons ---------- */
+.btn{
+  appearance:none;font-family:var(--font-display);font-weight:500;font-size:.96rem;
+  padding:11px 17px;border-radius:13px;border:1.5px solid var(--line);
+  background:#fff;color:var(--text);cursor:pointer;transition:.12s;
+}
+.btn:hover{border-color:#dcc9af;background:var(--panel-2)}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);
+  box-shadow:0 8px 18px rgba(255,122,89,.32)}
+.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
+
+/* ---------- Image upload ----------
+   Friendlier slots: a big center-color chip is the main cue, since the
+   middle sticker never moves — beginners just match each photo to its
+   middle color. A plain-language position word sits beside it. */
+.faces-up{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
+.slot{
+  border:2px dashed var(--line);border-radius:14px;padding:10px 12px;text-align:left;
+  background:#fffdfa;cursor:pointer;transition:.12s;position:relative;overflow:hidden;
+  display:flex;align-items:center;gap:11px;
+}
+.slot:hover{border-color:var(--accent);background:#fff6f1}
+.slot .ph{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.slot .center{width:28px;height:28px;border-radius:8px;flex:0 0 auto;
+  border:2px solid #fff;box-shadow:0 2px 6px rgba(120,86,54,.2), inset 0 0 0 1px rgba(0,0,0,.06)}
+.slot .txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.slot .pos{font-family:var(--font-display);font-weight:600;font-size:.98rem;color:#43392f}
+.slot .name{font-size:.76rem;color:var(--muted);font-weight:600}
+.slot canvas{width:58px;height:58px;flex:0 0 auto;border-radius:9px;display:none;object-fit:cover}
+.slot.has-img canvas{display:block}
+.slot.has-img .center{outline:3px solid var(--ok);outline-offset:2px}
+.slot input{display:none}
+
+/* ---------- Status / messages ---------- */
+.status{margin-top:15px;font-size:.92rem;min-height:1.2em}
+.status.err{color:var(--danger);font-weight:700}
+.status.ok{color:var(--ok);font-weight:700}
+.status.info{color:var(--muted)}
+.counts{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.count{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted);font-weight:700;
+  background:#fffdfa;border:1.5px solid var(--line);border-radius:20px;padding:4px 11px}
+.count i{width:12px;height:12px;border-radius:4px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
+.count.bad{color:var(--danger);border-color:#f0c4b8;background:#fdeee9}
+
+/* spinner */
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(120,86,54,.25);
+  border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.overlay{position:fixed;inset:0;background:rgba(252,246,238,.72);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+.overlay .box{background:var(--panel);border:1.5px solid var(--line);border-radius:18px;
+  padding:24px 28px;text-align:center;max-width:300px;box-shadow:0 20px 50px rgba(150,110,70,.2)}
+.overlay .big{width:34px;height:34px;border-width:3px;margin:0 auto 12px;display:block}
+
+/* ---------- Solution output ---------- */
+.solution{margin-top:4px}
+.moves{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.move{font-family:var(--font-mono);font-weight:700;font-size:.95rem;
+  background:var(--panel-2);border:1.5px solid var(--line);border-radius:10px;
+  padding:7px 11px;min-width:42px;text-align:center;transition:.12s;cursor:pointer}
+.move:hover{border-color:#dcc9af}
+.move.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);transform:scale(1.08)}
+.move .n{font-size:.6rem;color:var(--muted);display:block;font-family:var(--font-body);font-weight:700}
+.move.active .n{color:rgba(255,255,255,.85)}
+
+/* ---------- Playback player (manual mode: watch the cube solve itself) ---------- */
+.player{margin-top:6px;background:var(--panel-2);border:1.5px solid var(--line);border-radius:14px;padding:14px}
+.player .now{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.player .now .badge{font-family:var(--font-mono);font-weight:700;font-size:1.5rem;
+  background:#fff;border:1.5px solid var(--line);border-radius:12px;min-width:60px;height:54px;
+  display:grid;place-items:center;color:var(--accent)}
+.player .now .desc{font-size:.92rem;font-weight:700;color:var(--text)}
+.player .now .desc small{display:block;font-weight:600;color:var(--muted);font-size:.78rem;margin-top:1px}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.controls .btn{padding:9px 13px}
+.iconbtn{font-family:var(--font-display);font-weight:600}
+.speed{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:.82rem;color:var(--muted);font-weight:700}
+.speed input[type=range]{flex:1;accent-color:var(--accent);height:4px;cursor:pointer}
+.speed .lab{min-width:30px;text-align:center}
+
+/* ---------- Step navigator (image mode: text-only) ---------- */
+.stepper{display:flex;align-items:center;gap:10px;margin-top:6px}
+.stepper .pos{font-family:var(--font-mono);font-size:.85rem;color:var(--muted);min-width:64px;text-align:center;font-weight:700}
+
+.legend{margin-top:16px;border-top:1.5px solid var(--line);padding-top:14px;color:var(--muted);font-size:.84rem}
+.legend code{font-family:var(--font-mono);color:var(--text);background:var(--panel-2);padding:1px 6px;border-radius:6px;border:1px solid var(--line)}
+.legend b{color:var(--text)}
+details summary{cursor:pointer;color:var(--muted);font-size:.85rem;margin-top:12px;font-weight:700}
+details summary:hover{color:var(--text)}
+.muted{color:var(--muted);font-size:.88rem}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo" aria-hidden="true">
+      <i style="background:var(--c-R)"></i><i style="background:var(--c-W)"></i><i style="background:var(--c-G)"></i>
+      <i style="background:var(--c-Y)"></i><i style="background:var(--c-B)"></i><i style="background:var(--c-R)"></i>
+      <i style="background:var(--c-W)"></i><i style="background:var(--c-O)"></i><i style="background:var(--c-Y)"></i>
+    </div>
+    <div>
+      <h1>Solvr</h1>
+      <div class="sub">Solve a real 3×3 Rubik's Cube — snap photos of it or color a 3D model. Then watch Solvr turn the cube for you, one move at a time, at whatever speed feels comfy.</div>
+    </div>
+  </header>
+
+  <!-- ============ TABS ============ -->
+  <div class="tabs" role="tablist" aria-label="Solver mode">
+    <button class="tab" id="tab-img" role="tab" aria-controls="panel-img" aria-selected="true">Image Upload Solver</button>
+    <button class="tab" id="tab-man" role="tab" aria-controls="panel-man" aria-selected="false">Manual Coloring Solver</button>
+  </div>
+
+  <!-- ============================================================
+       PANEL 1 — IMAGE UPLOAD SOLVER
+       ============================================================ -->
+  <section class="panel" id="panel-img" role="tabpanel" aria-labelledby="tab-img">
+    <div class="grid">
+      <div class="card">
+        <h2>1. Take a photo of each side</h2>
+        <p class="hint">Every side of the cube has a middle sticker whose color never changes. The easiest way: just match each photo to its middle color below — tap a box and snap that side so it fills the picture.</p>
+        <div class="faces-up" id="uploadSlots"><!-- slots injected --></div>
+        <details>
+          <summary>Not sure how to hold the cube?</summary>
+          <div class="muted" style="margin-top:8px">
+            You don't have to! Each box is labeled by its <b>middle color</b>, and the middle never moves.
+            Find the side with a <b>white</b> middle and photograph it for the “White / Top” box, the side
+            with a <b>green</b> middle for “Green / Front,” and so on. Hold the cube straight so the side fills the frame.
+          </div>
+        </details>
+        <div class="btnrow">
+          <button class="btn primary" id="analyzeBtn">Analyze photos</button>
+          <button class="btn" id="imgDemoBtn" title="Fill with a sample scramble">Try a sample</button>
+          <button class="btn" id="imgClearBtn">Clear</button>
+        </div>
+        <div class="status info" id="imgStatus"></div>
+      </div>
+
+      <div class="card">
+        <h2>2. Check &amp; fix the colors</h2>
+        <p class="hint">Cameras can misread a sticker under uneven light. Pick a color, then click any sticker in the map to fix it. The six middle stickers are locked.</p>
+        <div class="palette" id="imgPalette"></div>
+        <div class="net" id="imgNet" aria-label="Detected cube state"></div>
+        <div class="counts" id="imgCounts"></div>
+        <div class="btnrow">
+          <button class="btn primary" id="imgSolveBtn">Solve it!</button>
+        </div>
+        <div class="status" id="imgSolveStatus"></div>
+        <div class="solution" id="imgSolution"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PANEL 2 — MANUAL COLORING SOLVER
+       ============================================================ -->
+  <section class="panel" id="panel-man" role="tabpanel" aria-labelledby="tab-man" hidden>
+    <div class="grid">
+      <div class="card">
+        <h2>Color your cube</h2>
+        <p class="hint">Drag to spin it around. Pick a color below, then click stickers to paint them. The six middle stickers are locked to the standard scheme. When you solve, this same cube turns itself to show you every move.</p>
+        <div class="palette" id="manPalette"></div>
+        <canvas id="cube3d"></canvas>
+        <!-- Fallback 2D editor if Three.js fails to load -->
+        <div class="cube-fallback card" id="manFallback" style="margin-top:14px">
+          <p class="hint" style="margin-bottom:8px">3D view unavailable — use the flat map below.</p>
+          <div class="net" id="manNet"></div>
+        </div>
+        <div class="btnrow">
+          <button class="btn" id="manScrambleBtn">Random scramble</button>
+          <button class="btn" id="manSolvedBtn">Reset to solved</button>
+          <button class="btn" id="manClearBtn">Clear</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Solve &amp; watch</h2>
+        <p class="hint">Color every sticker, then solve. Press play and the cube turns itself — slow it down if the moves go too fast.</p>
+        <div class="counts" id="manCounts"></div>
+        <div class="btnrow">
+          <button class="btn primary" id="manSolveBtn">Solve it!</button>
+        </div>
+        <div class="status" id="manSolveStatus"></div>
+        <div class="solution" id="manSolution"></div>
+        <details>
+          <summary>How orientation works</summary>
+          <div class="muted" style="margin-top:8px">
+            The solution assumes you hold the cube with <b>white&nbsp;Up</b>, <b>green&nbsp;Front</b>,
+            <b>red&nbsp;Right</b>, <b>yellow&nbsp;Down</b>, <b>orange&nbsp;Left</b>, <b>blue&nbsp;Back</b> —
+            matching the fixed middle stickers.
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer style="margin-top:42px;color:var(--muted);font-size:.8rem;text-align:center">
+    Runs entirely in your browser · your photos never leave your device · the solver may take ~5s to warm up the first time.
+  </footer>
+</div>
+
+<!-- Loading overlay for image analysis & first-time solver warm-up -->
+<div class="overlay" id="overlay">
+  <div class="box">
+    <span class="spin big"></span>
+    <div id="overlayMsg">Working…</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CUBE ENGINE (inlined)
+     cube.js + solve.js — Herbert Kociemba's two-phase algorithm
+     (ldez/cubejs, MIT). Inlined so the core solver works even if a
+     CDN is unreachable. Sets window.Cube on the main thread; the
+     same source text is reused to build the solver Web Worker.
+     ============================================================ -->
+<script id="cubeEngine">
+// --- cube.js ---
+(function() {
+  // Centers
+  var B, BL, BR, Cube, D, DB, DBL, DF, DFR, DL, DLF, DR, DRB, F, FL, FR, L, R, U, UB, UBR, UF, UFL, UL, ULB, UR, URF, centerColor, centerFacelet, cornerColor, cornerFacelet, edgeColor, edgeFacelet;
+
+  [U, R, F, D, L, B] = [0, 1, 2, 3, 4, 5];
+
+  // Corners
+  [URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB] = [0, 1, 2, 3, 4, 5, 6, 7];
+
+  // Edges
+  [UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BL, BR] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+  [centerFacelet, cornerFacelet, edgeFacelet] = (function() {
+    var _B, _D, _F, _L, _R, _U;
+    _U = function(x) {
+      return x - 1;
+    };
+    _R = function(x) {
+      return _U(9) + x;
+    };
+    _F = function(x) {
+      return _R(9) + x;
+    };
+    _D = function(x) {
+      return _F(9) + x;
+    };
+    _L = function(x) {
+      return _D(9) + x;
+    };
+    _B = function(x) {
+      return _L(9) + x;
+    };
+    return [
+      // Centers
+      [4,
+      13,
+      22,
+      31,
+      40,
+      49],
+      // Corners
+      [[_U(9),
+      _R(1),
+      _F(3)],
+      [_U(7),
+      _F(1),
+      _L(3)],
+      [_U(1),
+      _L(1),
+      _B(3)],
+      [_U(3),
+      _B(1),
+      _R(3)],
+      [_D(3),
+      _F(9),
+      _R(7)],
+      [_D(1),
+      _L(9),
+      _F(7)],
+      [_D(7),
+      _B(9),
+      _L(7)],
+      [_D(9),
+      _R(9),
+      _B(7)]],
+      // Edges
+      [[_U(6),
+      _R(2)],
+      [_U(8),
+      _F(2)],
+      [_U(4),
+      _L(2)],
+      [_U(2),
+      _B(2)],
+      [_D(6),
+      _R(8)],
+      [_D(2),
+      _F(8)],
+      [_D(4),
+      _L(8)],
+      [_D(8),
+      _B(8)],
+      [_F(6),
+      _R(4)],
+      [_F(4),
+      _L(6)],
+      [_B(6),
+      _L(4)],
+      [_B(4),
+      _R(6)]]
+    ];
+  })();
+
+  centerColor = ['U', 'R', 'F', 'D', 'L', 'B'];
+
+  cornerColor = [['U', 'R', 'F'], ['U', 'F', 'L'], ['U', 'L', 'B'], ['U', 'B', 'R'], ['D', 'F', 'R'], ['D', 'L', 'F'], ['D', 'B', 'L'], ['D', 'R', 'B']];
+
+  edgeColor = [['U', 'R'], ['U', 'F'], ['U', 'L'], ['U', 'B'], ['D', 'R'], ['D', 'F'], ['D', 'L'], ['D', 'B'], ['F', 'R'], ['F', 'L'], ['B', 'L'], ['B', 'R']];
+
+  Cube = (function() {
+    var faceNames, faceNums, parseAlg;
+
+    class Cube {
+      constructor(other) {
+        var x;
+        if (other != null) {
+          this.init(other);
+        } else {
+          this.identity();
+        }
+        // For moves to avoid allocating new objects each time
+        this.newCenter = (function() {
+          var k, results;
+          results = [];
+          for (x = k = 0; k <= 5; x = ++k) {
+            results.push(0);
+          }
+          return results;
+        })();
+        this.newCp = (function() {
+          var k, results;
+          results = [];
+          for (x = k = 0; k <= 7; x = ++k) {
+            results.push(0);
+          }
+          return results;
+        })();
+        this.newEp = (function() {
+          var k, results;
+          results = [];
+          for (x = k = 0; k <= 11; x = ++k) {
+            results.push(0);
+          }
+          return results;
+        })();
+        this.newCo = (function() {
+          var k, results;
+          results = [];
+          for (x = k = 0; k <= 7; x = ++k) {
+            results.push(0);
+          }
+          return results;
+        })();
+        this.newEo = (function() {
+          var k, results;
+          results = [];
+          for (x = k = 0; k <= 11; x = ++k) {
+            results.push(0);
+          }
+          return results;
+        })();
+      }
+
+      init(state) {
+        this.center = state.center.slice(0);
+        this.co = state.co.slice(0);
+        this.ep = state.ep.slice(0);
+        this.cp = state.cp.slice(0);
+        return this.eo = state.eo.slice(0);
+      }
+
+      identity() {
+        var x;
+        // Initialize to the identity cube
+        this.center = [0, 1, 2, 3, 4, 5];
+        this.cp = [0, 1, 2, 3, 4, 5, 6, 7];
+        this.co = (function() {
+          var k, results;
+          results = [];
+          for (x = k = 0; k <= 7; x = ++k) {
+            results.push(0);
+          }
+          return results;
+        })();
+        this.ep = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+        return this.eo = (function() {
+          var k, results;
+          results = [];
+          for (x = k = 0; k <= 11; x = ++k) {
+            results.push(0);
+          }
+          return results;
+        })();
+      }
+
+      toJSON() {
+        return {
+          center: this.center,
+          cp: this.cp,
+          co: this.co,
+          ep: this.ep,
+          eo: this.eo
+        };
+      }
+
+      asString() {
+        var corner, edge, i, k, l, m, n, o, ori, p, result;
+        result = [];
+        for (i = k = 0; k <= 5; i = ++k) {
+          result[9 * i + 4] = centerColor[this.center[i]];
+        }
+        for (i = l = 0; l <= 7; i = ++l) {
+          corner = this.cp[i];
+          ori = this.co[i];
+          for (n = m = 0; m <= 2; n = ++m) {
+            result[cornerFacelet[i][(n + ori) % 3]] = cornerColor[corner][n];
+          }
+        }
+        for (i = o = 0; o <= 11; i = ++o) {
+          edge = this.ep[i];
+          ori = this.eo[i];
+          for (n = p = 0; p <= 1; n = ++p) {
+            result[edgeFacelet[i][(n + ori) % 2]] = edgeColor[edge][n];
+          }
+        }
+        return result.join('');
+      }
+
+      static fromString(str) {
+        var col1, col2, cube, i, j, k, l, m, o, ori, p, q, r, ref;
+        cube = new Cube;
+        for (i = k = 0; k <= 5; i = ++k) {
+          for (j = l = 0; l <= 5; j = ++l) {
+            if (str[9 * i + 4] === centerColor[j]) {
+              cube.center[i] = j;
+            }
+          }
+        }
+        for (i = m = 0; m <= 7; i = ++m) {
+          for (ori = o = 0; o <= 2; ori = ++o) {
+            if ((ref = str[cornerFacelet[i][ori]]) === 'U' || ref === 'D') {
+              break;
+            }
+          }
+          col1 = str[cornerFacelet[i][(ori + 1) % 3]];
+          col2 = str[cornerFacelet[i][(ori + 2) % 3]];
+          for (j = p = 0; p <= 7; j = ++p) {
+            if (col1 === cornerColor[j][1] && col2 === cornerColor[j][2]) {
+              cube.cp[i] = j;
+              cube.co[i] = ori % 3;
+            }
+          }
+        }
+        for (i = q = 0; q <= 11; i = ++q) {
+          for (j = r = 0; r <= 11; j = ++r) {
+            if (str[edgeFacelet[i][0]] === edgeColor[j][0] && str[edgeFacelet[i][1]] === edgeColor[j][1]) {
+              cube.ep[i] = j;
+              cube.eo[i] = 0;
+              break;
+            }
+            if (str[edgeFacelet[i][0]] === edgeColor[j][1] && str[edgeFacelet[i][1]] === edgeColor[j][0]) {
+              cube.ep[i] = j;
+              cube.eo[i] = 1;
+              break;
+            }
+          }
+        }
+        return cube;
+      }
+
+      clone() {
+        return new Cube(this.toJSON());
+      }
+
+      // A class method returning a new random cube
+      static random() {
+        return new Cube().randomize();
+      }
+
+      isSolved() {
+        var c, cent, clone, e, k, l, m;
+        clone = this.clone();
+        clone.move(clone.upright());
+        for (cent = k = 0; k <= 5; cent = ++k) {
+          if (clone.center[cent] !== cent) {
+            return false;
+          }
+        }
+        for (c = l = 0; l <= 7; c = ++l) {
+          if (clone.cp[c] !== c) {
+            return false;
+          }
+          if (clone.co[c] !== 0) {
+            return false;
+          }
+        }
+        for (e = m = 0; m <= 11; e = ++m) {
+          if (clone.ep[e] !== e) {
+            return false;
+          }
+          if (clone.eo[e] !== 0) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Multiply this Cube with another Cube, restricted to centers.
+      centerMultiply(other) {
+        var from, k, to;
+        for (to = k = 0; k <= 5; to = ++k) {
+          from = other.center[to];
+          this.newCenter[to] = this.center[from];
+        }
+        [this.center, this.newCenter] = [this.newCenter, this.center];
+        return this;
+      }
+
+      // Multiply this Cube with another Cube, restricted to corners.
+      cornerMultiply(other) {
+        var from, k, to;
+        for (to = k = 0; k <= 7; to = ++k) {
+          from = other.cp[to];
+          this.newCp[to] = this.cp[from];
+          this.newCo[to] = (this.co[from] + other.co[to]) % 3;
+        }
+        [this.cp, this.newCp] = [this.newCp, this.cp];
+        [this.co, this.newCo] = [this.newCo, this.co];
+        return this;
+      }
+
+      // Multiply this Cube with another Cube, restricted to edges
+      edgeMultiply(other) {
+        var from, k, to;
+        for (to = k = 0; k <= 11; to = ++k) {
+          from = other.ep[to];
+          this.newEp[to] = this.ep[from];
+          this.newEo[to] = (this.eo[from] + other.eo[to]) % 2;
+        }
+        [this.ep, this.newEp] = [this.newEp, this.ep];
+        [this.eo, this.newEo] = [this.newEo, this.eo];
+        return this;
+      }
+
+      // Multiply this cube with another Cube
+      multiply(other) {
+        this.centerMultiply(other);
+        this.cornerMultiply(other);
+        this.edgeMultiply(other);
+        return this;
+      }
+
+      move(arg) {
+        var face, k, l, len, move, power, ref, ref1, x;
+        ref = parseAlg(arg);
+        for (k = 0, len = ref.length; k < len; k++) {
+          move = ref[k];
+          face = move / 3 | 0;
+          power = move % 3;
+          for (x = l = 0, ref1 = power; (0 <= ref1 ? l <= ref1 : l >= ref1); x = 0 <= ref1 ? ++l : --l) {
+            this.multiply(Cube.moves[face]);
+          }
+        }
+        return this;
+      }
+
+      upright() {
+        var clone, i, j, k, l, result;
+        clone = this.clone();
+        result = [];
+        for (i = k = 0; k <= 5; i = ++k) {
+          if (clone.center[i] === F) {
+            break;
+          }
+        }
+        switch (i) {
+          case D:
+            result.push("x");
+            break;
+          case U:
+            result.push("x'");
+            break;
+          case B:
+            result.push("x2");
+            break;
+          case R:
+            result.push("y");
+            break;
+          case L:
+            result.push("y'");
+        }
+        if (result.length) {
+          clone.move(result[0]);
+        }
+        for (j = l = 0; l <= 5; j = ++l) {
+          if (clone.center[j] === U) {
+            break;
+          }
+        }
+        switch (j) {
+          case L:
+            result.push("z");
+            break;
+          case R:
+            result.push("z'");
+            break;
+          case D:
+            result.push("z2");
+        }
+        return result.join(' ');
+      }
+
+      static inverse(arg) {
+        var face, k, len, move, power, result, str;
+        result = (function() {
+          var k, len, ref, results;
+          ref = parseAlg(arg);
+          results = [];
+          for (k = 0, len = ref.length; k < len; k++) {
+            move = ref[k];
+            face = move / 3 | 0;
+            power = move % 3;
+            results.push(face * 3 + -(power - 1) + 1);
+          }
+          return results;
+        })();
+        result.reverse();
+        if (typeof arg === 'string') {
+          str = '';
+          for (k = 0, len = result.length; k < len; k++) {
+            move = result[k];
+            face = move / 3 | 0;
+            power = move % 3;
+            str += faceNames[face];
+            if (power === 1) {
+              str += '2';
+            } else if (power === 2) {
+              str += "'";
+            }
+            str += ' ';
+          }
+          return str.substring(0, str.length - 1);
+        } else if (arg.length != null) {
+          return result;
+        } else {
+          return result[0];
+        }
+      }
+
+    };
+
+    Cube.prototype.randomize = (function() {
+      var arePermutationsValid, generateValidRandomOrientation, generateValidRandomPermutation, getNumSwaps, isOrientationValid, randint, randomizeOrientation, result, shuffle;
+      randint = function(min, max) {
+        return min + Math.floor(Math.random() * (max - min + 1));
+      };
+      // Fisher-Yates shuffle adapted from https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+      shuffle = function(array) {
+        var currentIndex, randomIndex, temporaryValue;
+        currentIndex = array.length;
+        // While there remain elements to shuffle...
+        while (currentIndex !== 0) {
+          // Pick a remaining element...
+          randomIndex = randint(0, currentIndex - 1);
+          currentIndex -= 1;
+          // And swap it with the current element.
+          temporaryValue = array[currentIndex];
+          [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+      };
+      getNumSwaps = function(arr) {
+        var cur, cycleLength, i, k, numSwaps, ref, seen, x;
+        numSwaps = 0;
+        seen = (function() {
+          var k, ref, results;
+          results = [];
+          for (x = k = 0, ref = arr.length - 1; (0 <= ref ? k <= ref : k >= ref); x = 0 <= ref ? ++k : --k) {
+            results.push(false);
+          }
+          return results;
+        })();
+        while (true) {
+          // We compute the cycle decomposition
+          cur = -1;
+          for (i = k = 0, ref = arr.length - 1; (0 <= ref ? k <= ref : k >= ref); i = 0 <= ref ? ++k : --k) {
+            if (!seen[i]) {
+              cur = i;
+              break;
+            }
+          }
+          if (cur === -1) {
+            break;
+          }
+          cycleLength = 0;
+          while (!seen[cur]) {
+            seen[cur] = true;
+            cycleLength++;
+            cur = arr[cur];
+          }
+          // A cycle is equivalent to cycleLength + 1 swaps
+          numSwaps += cycleLength + 1;
+        }
+        return numSwaps;
+      };
+      arePermutationsValid = function(cp, ep) {
+        var numSwaps;
+        numSwaps = getNumSwaps(ep) + getNumSwaps(cp);
+        return numSwaps % 2 === 0;
+      };
+      generateValidRandomPermutation = function(cp, ep) {
+        // Each shuffle only takes around 12 operations and there's a 50%
+        // chance of a valid permutation so it'll finish in very good time
+        shuffle(ep);
+        shuffle(cp);
+        while (!arePermutationsValid(cp, ep)) {
+          shuffle(ep);
+          shuffle(cp);
+        }
+      };
+      randomizeOrientation = function(arr, numOrientations) {
+        var i, k, ori, ref;
+        ori = 0;
+        for (i = k = 0, ref = arr.length - 1; (0 <= ref ? k <= ref : k >= ref); i = 0 <= ref ? ++k : --k) {
+          ori += (arr[i] = randint(0, numOrientations - 1));
+        }
+      };
+      isOrientationValid = function(arr, numOrientations) {
+        return arr.reduce(function(a, b) {
+          return a + b;
+        }) % numOrientations === 0;
+      };
+      generateValidRandomOrientation = function(co, eo) {
+        // There is a 1/2 and 1/3 probably respectively of each of these
+        // succeeding so the probability of them running 10 times before
+        // success is already only 1% and only gets exponentially lower
+        // and each generation is only in the 10s of operations which is nothing
+        randomizeOrientation(co, 3);
+        while (!isOrientationValid(co, 3)) {
+          randomizeOrientation(co, 3);
+        }
+        randomizeOrientation(eo, 2);
+        while (!isOrientationValid(eo, 2)) {
+          randomizeOrientation(eo, 2);
+        }
+      };
+      result = function() {
+        generateValidRandomPermutation(this.cp, this.ep);
+        generateValidRandomOrientation(this.co, this.eo);
+        return this;
+      };
+      return result;
+    })();
+
+    Cube.moves = [
+      {
+        // U
+        center: [0, 1, 2, 3, 4, 5],
+        cp: [UBR,
+      URF,
+      UFL,
+      ULB,
+      DFR,
+      DLF,
+      DBL,
+      DRB],
+        co: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0],
+        ep: [UB,
+      UR,
+      UF,
+      UL,
+      DR,
+      DF,
+      DL,
+      DB,
+      FR,
+      FL,
+      BL,
+      BR],
+        eo: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0]
+      },
+      {
+        // R
+        center: [0, 1, 2, 3, 4, 5],
+        cp: [DFR,
+      UFL,
+      ULB,
+      URF,
+      DRB,
+      DLF,
+      DBL,
+      UBR],
+        co: [2,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      2],
+        ep: [FR,
+      UF,
+      UL,
+      UB,
+      BR,
+      DF,
+      DL,
+      DB,
+      DR,
+      FL,
+      BL,
+      UR],
+        eo: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0]
+      },
+      {
+        // F
+        center: [0, 1, 2, 3, 4, 5],
+        cp: [UFL,
+      DLF,
+      ULB,
+      UBR,
+      URF,
+      DFR,
+      DBL,
+      DRB],
+        co: [1,
+      2,
+      0,
+      0,
+      2,
+      1,
+      0,
+      0],
+        ep: [UR,
+      FL,
+      UL,
+      UB,
+      DR,
+      FR,
+      DL,
+      DB,
+      UF,
+      DF,
+      BL,
+      BR],
+        eo: [0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0]
+      },
+      {
+        // D
+        center: [0, 1, 2, 3, 4, 5],
+        cp: [URF,
+      UFL,
+      ULB,
+      UBR,
+      DLF,
+      DBL,
+      DRB,
+      DFR],
+        co: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0],
+        ep: [UR,
+      UF,
+      UL,
+      UB,
+      DF,
+      DL,
+      DB,
+      DR,
+      FR,
+      FL,
+      BL,
+      BR],
+        eo: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0]
+      },
+      {
+        // L
+        center: [0, 1, 2, 3, 4, 5],
+        cp: [URF,
+      ULB,
+      DBL,
+      UBR,
+      DFR,
+      UFL,
+      DLF,
+      DRB],
+        co: [0,
+      1,
+      2,
+      0,
+      0,
+      2,
+      1,
+      0],
+        ep: [UR,
+      UF,
+      BL,
+      UB,
+      DR,
+      DF,
+      FL,
+      DB,
+      FR,
+      UL,
+      DL,
+      BR],
+        eo: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0]
+      },
+      {
+        // B
+        center: [0, 1, 2, 3, 4, 5],
+        cp: [URF,
+      UFL,
+      UBR,
+      DRB,
+      DFR,
+      DLF,
+      ULB,
+      DBL],
+        co: [0,
+      0,
+      1,
+      2,
+      0,
+      0,
+      2,
+      1],
+        ep: [UR,
+      UF,
+      UL,
+      BR,
+      DR,
+      DF,
+      DL,
+      BL,
+      FR,
+      FL,
+      UB,
+      DB],
+        eo: [0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1]
+      },
+      {
+        // E
+        center: [U,
+      F,
+      L,
+      D,
+      B,
+      R],
+        cp: [URF,
+      UFL,
+      ULB,
+      UBR,
+      DFR,
+      DLF,
+      DBL,
+      DRB],
+        co: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0],
+        ep: [UR,
+      UF,
+      UL,
+      UB,
+      DR,
+      DF,
+      DL,
+      DB,
+      FL,
+      BL,
+      BR,
+      FR],
+        eo: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1]
+      },
+      {
+        // M
+        center: [B,
+      R,
+      U,
+      F,
+      L,
+      D],
+        cp: [URF,
+      UFL,
+      ULB,
+      UBR,
+      DFR,
+      DLF,
+      DBL,
+      DRB],
+        co: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0],
+        ep: [UR,
+      UB,
+      UL,
+      DB,
+      DR,
+      UF,
+      DL,
+      DF,
+      FR,
+      FL,
+      BL,
+      BR],
+        eo: [0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0]
+      },
+      {
+        // S
+        center: [L,
+      U,
+      F,
+      R,
+      D,
+      B],
+        cp: [URF,
+      UFL,
+      ULB,
+      UBR,
+      DFR,
+      DLF,
+      DBL,
+      DRB],
+        co: [0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0],
+        ep: [UL,
+      UF,
+      DL,
+      UB,
+      UR,
+      DF,
+      DR,
+      DB,
+      FR,
+      FL,
+      BL,
+      BR],
+        eo: [1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0]
+      }
+    ];
+
+    faceNums = {
+      U: 0,
+      R: 1,
+      F: 2,
+      D: 3,
+      L: 4,
+      B: 5,
+      E: 6,
+      M: 7,
+      S: 8,
+      x: 9,
+      y: 10,
+      z: 11,
+      u: 12,
+      r: 13,
+      f: 14,
+      d: 15,
+      l: 16,
+      b: 17
+    };
+
+    faceNames = {
+      0: 'U',
+      1: 'R',
+      2: 'F',
+      3: 'D',
+      4: 'L',
+      5: 'B',
+      6: 'E',
+      7: 'M',
+      8: 'S',
+      9: 'x',
+      10: 'y',
+      11: 'z',
+      12: 'u',
+      13: 'r',
+      14: 'f',
+      15: 'd',
+      16: 'l',
+      17: 'b'
+    };
+
+    parseAlg = function(arg) {
+      var k, len, move, part, power, ref, results;
+      if (typeof arg === 'string') {
+        ref = arg.split(/\s+/);
+        // String
+        results = [];
+        for (k = 0, len = ref.length; k < len; k++) {
+          part = ref[k];
+          if (part.length === 0) {
+            // First and last can be empty
+            continue;
+          }
+          if (part.length > 2) {
+            throw new Error(`Invalid move: ${part}`);
+          }
+          move = faceNums[part[0]];
+          if (move === void 0) {
+            throw new Error(`Invalid move: ${part}`);
+          }
+          if (part.length === 1) {
+            power = 0;
+          } else {
+            if (part[1] === '2') {
+              power = 1;
+            } else if (part[1] === "'") {
+              power = 2;
+            } else {
+              throw new Error(`Invalid move: ${part}`);
+            }
+          }
+          results.push(move * 3 + power);
+        }
+        return results;
+      } else if (arg.length != null) {
+        // Already an array
+        return arg;
+      } else {
+        // A single move
+        return [arg];
+      }
+    };
+
+    // x
+    Cube.moves.push(new Cube().move("R M' L'").toJSON());
+
+    // y
+    Cube.moves.push(new Cube().move("U E' D'").toJSON());
+
+    // z
+    Cube.moves.push(new Cube().move("F S B'").toJSON());
+
+    // u
+    Cube.moves.push(new Cube().move("U E'").toJSON());
+
+    // r
+    Cube.moves.push(new Cube().move("R M'").toJSON());
+
+    // f
+    Cube.moves.push(new Cube().move("F S").toJSON());
+
+    // d
+    Cube.moves.push(new Cube().move("D E").toJSON());
+
+    // l
+    Cube.moves.push(new Cube().move("L M").toJSON());
+
+    // b
+    Cube.moves.push(new Cube().move("B S'").toJSON());
+
+    return Cube;
+
+  }).call(this);
+
+  //# Globals
+  if (typeof module !== "undefined" && module !== null) {
+    module.exports = Cube;
+  } else {
+    this.Cube = Cube;
+  }
+
+}).call(this);
+
+// --- solve.js ---
+(function() {
+  var B, BL, BR, Cnk, Cube, D, DB, DBL, DF, DFR, DL, DLF, DR, DRB, F, FL, FR, Include, L, N_FLIP, N_FRtoBR, N_PARITY, N_SLICE1, N_SLICE2, N_TWIST, N_UBtoDF, N_URFtoDLF, N_URtoDF, N_URtoUL, R, U, UB, UBR, UF, UFL, UL, ULB, UR, URF, allMoves1, allMoves2, computeMoveTable, computePruningTable, faceNames, faceNums, factorial, key, max, mergeURtoDF, moveTableParams, nextMoves1, nextMoves2, permutationIndex, pruning, pruningTableParams, rotateLeft, rotateRight, value,
+    indexOf = [].indexOf;
+
+  Cube = this.Cube || require('./cube');
+
+  // Centers
+  [U, R, F, D, L, B] = [0, 1, 2, 3, 4, 5];
+
+  // Corners
+  [URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB] = [0, 1, 2, 3, 4, 5, 6, 7];
+
+  // Edges
+  [UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BL, BR] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+  //# Helpers
+
+  // n choose k, i.e. the binomial coeffiecient
+  Cnk = function(n, k) {
+    var i, j, s;
+    if (n < k) {
+      return 0;
+    }
+    if (k > n / 2) {
+      k = n - k;
+    }
+    s = 1;
+    i = n;
+    j = 1;
+    while (i !== n - k) {
+      s *= i;
+      s /= j;
+      i--;
+      j++;
+    }
+    return s;
+  };
+
+  // n!
+  factorial = function(n) {
+    var f, i, m, ref;
+    f = 1;
+    for (i = m = 2, ref = n; (2 <= ref ? m <= ref : m >= ref); i = 2 <= ref ? ++m : --m) {
+      f *= i;
+    }
+    return f;
+  };
+
+  // Maximum of two values
+  max = function(a, b) {
+    if (a > b) {
+      return a;
+    } else {
+      return b;
+    }
+  };
+
+  // Rotate elements between l and r left by one place
+  rotateLeft = function(array, l, r) {
+    var i, m, ref, ref1, tmp;
+    tmp = array[l];
+    for (i = m = ref = l, ref1 = r - 1; (ref <= ref1 ? m <= ref1 : m >= ref1); i = ref <= ref1 ? ++m : --m) {
+      array[i] = array[i + 1];
+    }
+    return array[r] = tmp;
+  };
+
+  // Rotate elements between l and r right by one place
+  rotateRight = function(array, l, r) {
+    var i, m, ref, ref1, tmp;
+    tmp = array[r];
+    for (i = m = ref = r, ref1 = l + 1; (ref <= ref1 ? m <= ref1 : m >= ref1); i = ref <= ref1 ? ++m : --m) {
+      array[i] = array[i - 1];
+    }
+    return array[l] = tmp;
+  };
+
+  // Generate a function that computes permutation indices.
+
+  // The permutation index actually encodes two indices: Combination,
+  // i.e. positions of the cubies start..end (A) and their respective
+  // permutation (B). The maximum value for B is
+
+  //   maxB = (end - start + 1)!
+
+  // and the index is A * maxB + B
+  permutationIndex = function(context, start, end, fromEnd = false) {
+    var i, maxAll, maxB, maxOur, our, permName;
+    maxOur = end - start;
+    maxB = factorial(maxOur + 1);
+    if (context === 'corners') {
+      maxAll = 7;
+      permName = 'cp';
+    } else {
+      maxAll = 11;
+      permName = 'ep';
+    }
+    our = (function() {
+      var m, ref, results;
+      results = [];
+      for (i = m = 0, ref = maxOur; (0 <= ref ? m <= ref : m >= ref); i = 0 <= ref ? ++m : --m) {
+        results.push(0);
+      }
+      return results;
+    })();
+    return function(index) {
+      var a, b, c, j, k, m, o, p, perm, q, ref, ref1, ref10, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, t, u, w, x, y, z;
+      if (index != null) {
+        for (i = m = 0, ref = maxOur; (0 <= ref ? m <= ref : m >= ref); i = 0 <= ref ? ++m : --m) {
+          // Reset our to [start..end]
+          our[i] = i + start;
+        }
+        b = index % maxB; // permutation
+        a = index / maxB | 0; // combination
+        
+        // Invalidate all edges
+        perm = this[permName];
+        for (i = o = 0, ref1 = maxAll; (0 <= ref1 ? o <= ref1 : o >= ref1); i = 0 <= ref1 ? ++o : --o) {
+          perm[i] = -1;
+        }
+// Generate permutation from index b
+        for (j = p = 1, ref2 = maxOur; (1 <= ref2 ? p <= ref2 : p >= ref2); j = 1 <= ref2 ? ++p : --p) {
+          k = b % (j + 1);
+          b = b / (j + 1) | 0;
+          // TODO: Implement rotateRightBy(our, 0, j, k)
+          while (k > 0) {
+            rotateRight(our, 0, j);
+            k--;
+          }
+        }
+        // Generate combination and set our edges
+        x = maxOur;
+        if (fromEnd) {
+          for (j = q = 0, ref3 = maxAll; (0 <= ref3 ? q <= ref3 : q >= ref3); j = 0 <= ref3 ? ++q : --q) {
+            c = Cnk(maxAll - j, x + 1);
+            if (a - c >= 0) {
+              perm[j] = our[maxOur - x];
+              a -= c;
+              x--;
+            }
+          }
+        } else {
+          for (j = t = ref4 = maxAll; (ref4 <= 0 ? t <= 0 : t >= 0); j = ref4 <= 0 ? ++t : --t) {
+            c = Cnk(j, x + 1);
+            if (a - c >= 0) {
+              perm[j] = our[x];
+              a -= c;
+              x--;
+            }
+          }
+        }
+        return this;
+      } else {
+        perm = this[permName];
+        for (i = u = 0, ref5 = maxOur; (0 <= ref5 ? u <= ref5 : u >= ref5); i = 0 <= ref5 ? ++u : --u) {
+          our[i] = -1;
+        }
+        a = b = x = 0;
+        // Compute the index a < ((maxAll + 1) choose (maxOur + 1)) and
+        // the permutation
+        if (fromEnd) {
+          for (j = w = ref6 = maxAll; (ref6 <= 0 ? w <= 0 : w >= 0); j = ref6 <= 0 ? ++w : --w) {
+            if ((start <= (ref7 = perm[j]) && ref7 <= end)) {
+              a += Cnk(maxAll - j, x + 1);
+              our[maxOur - x] = perm[j];
+              x++;
+            }
+          }
+        } else {
+          for (j = y = 0, ref8 = maxAll; (0 <= ref8 ? y <= ref8 : y >= ref8); j = 0 <= ref8 ? ++y : --y) {
+            if ((start <= (ref9 = perm[j]) && ref9 <= end)) {
+              a += Cnk(j, x + 1);
+              our[x] = perm[j];
+              x++;
+            }
+          }
+        }
+// Compute the index b < (maxOur + 1)! for the permutation
+        for (j = z = ref10 = maxOur; (ref10 <= 0 ? z <= 0 : z >= 0); j = ref10 <= 0 ? ++z : --z) {
+          k = 0;
+          while (our[j] !== start + j) {
+            rotateLeft(our, 0, j);
+            k++;
+          }
+          b = (j + 1) * b + k;
+        }
+        return a * maxB + b;
+      }
+    };
+  };
+
+  Include = {
+    // The twist of the 8 corners, 0 <= twist < 3^7. The orientation of
+    // the DRB corner is fully determined by the orientation of the other
+    // corners.
+    twist: function(twist) {
+      var i, m, o, ori, parity, v;
+      if (twist != null) {
+        parity = 0;
+        for (i = m = 6; m >= 0; i = --m) {
+          ori = twist % 3;
+          twist = (twist / 3) | 0;
+          this.co[i] = ori;
+          parity += ori;
+        }
+        this.co[7] = (3 - parity % 3) % 3;
+        return this;
+      } else {
+        v = 0;
+        for (i = o = 0; o <= 6; i = ++o) {
+          v = 3 * v + this.co[i];
+        }
+        return v;
+      }
+    },
+    // The flip of the 12 edges, 0 <= flip < 2^11. The orientation of the
+    // BR edge is fully determined by the orientation of the other edges.
+    flip: function(flip) {
+      var i, m, o, ori, parity, v;
+      if (flip != null) {
+        parity = 0;
+        for (i = m = 10; m >= 0; i = --m) {
+          ori = flip % 2;
+          flip = flip / 2 | 0;
+          this.eo[i] = ori;
+          parity += ori;
+        }
+        this.eo[11] = (2 - parity % 2) % 2;
+        return this;
+      } else {
+        v = 0;
+        for (i = o = 0; o <= 10; i = ++o) {
+          v = 2 * v + this.eo[i];
+        }
+        return v;
+      }
+    },
+    // Parity of the corner permutation
+    cornerParity: function() {
+      var i, j, m, o, ref, ref1, ref2, ref3, s;
+      s = 0;
+      for (i = m = ref = DRB, ref1 = URF + 1; (ref <= ref1 ? m <= ref1 : m >= ref1); i = ref <= ref1 ? ++m : --m) {
+        for (j = o = ref2 = i - 1, ref3 = URF; (ref2 <= ref3 ? o <= ref3 : o >= ref3); j = ref2 <= ref3 ? ++o : --o) {
+          if (this.cp[j] > this.cp[i]) {
+            s++;
+          }
+        }
+      }
+      return s % 2;
+    },
+    // Parity of the edges permutation. Parity of corners and edges are
+    // the same if the cube is solvable.
+    edgeParity: function() {
+      var i, j, m, o, ref, ref1, ref2, ref3, s;
+      s = 0;
+      for (i = m = ref = BR, ref1 = UR + 1; (ref <= ref1 ? m <= ref1 : m >= ref1); i = ref <= ref1 ? ++m : --m) {
+        for (j = o = ref2 = i - 1, ref3 = UR; (ref2 <= ref3 ? o <= ref3 : o >= ref3); j = ref2 <= ref3 ? ++o : --o) {
+          if (this.ep[j] > this.ep[i]) {
+            s++;
+          }
+        }
+      }
+      return s % 2;
+    },
+    // Permutation of the six corners URF, UFL, ULB, UBR, DFR, DLF
+    URFtoDLF: permutationIndex('corners', URF, DLF),
+    // Permutation of the three edges UR, UF, UL
+    URtoUL: permutationIndex('edges', UR, UL),
+    // Permutation of the three edges UB, DR, DF
+    UBtoDF: permutationIndex('edges', UB, DF),
+    // Permutation of the six edges UR, UF, UL, UB, DR, DF
+    URtoDF: permutationIndex('edges', UR, DF),
+    // Permutation of the equator slice edges FR, FL, BL and BR
+    FRtoBR: permutationIndex('edges', FR, BR, true)
+  };
+
+  for (key in Include) {
+    value = Include[key];
+    Cube.prototype[key] = value;
+  }
+
+  computeMoveTable = function(context, coord, size) {
+    var apply, cube, i, inner, j, k, m, move, o, p, ref, results;
+    // Loop through all valid values for the coordinate, setting cube's
+    // state in each iteration. Then apply each of the 18 moves to the
+    // cube, and compute the resulting coordinate.
+    apply = context === 'corners' ? 'cornerMultiply' : 'edgeMultiply';
+    cube = new Cube;
+    results = [];
+    for (i = m = 0, ref = size - 1; (0 <= ref ? m <= ref : m >= ref); i = 0 <= ref ? ++m : --m) {
+      cube[coord](i);
+      inner = [];
+      for (j = o = 0; o <= 5; j = ++o) {
+        move = Cube.moves[j];
+        for (k = p = 0; p <= 2; k = ++p) {
+          cube[apply](move);
+          inner.push(cube[coord]());
+        }
+        // 4th face turn restores the cube
+        cube[apply](move);
+      }
+      results.push(inner);
+    }
+    return results;
+  };
+
+  // Because we only have the phase 2 URtoDF coordinates, we need to
+  // merge the URtoUL and UBtoDF coordinates to URtoDF in the beginning
+  // of phase 2.
+  mergeURtoDF = (function() {
+    var a, b;
+    a = new Cube;
+    b = new Cube;
+    return function(URtoUL, UBtoDF) {
+      var i, m;
+      // Collisions can be found because unset are set to -1
+      a.URtoUL(URtoUL);
+      b.UBtoDF(UBtoDF);
+      for (i = m = 0; m <= 7; i = ++m) {
+        if (a.ep[i] !== -1) {
+          if (b.ep[i] !== -1) {
+            return -1; // collision
+          } else {
+            b.ep[i] = a.ep[i];
+          }
+        }
+      }
+      return b.URtoDF();
+    };
+  })();
+
+  N_TWIST = 2187; // 3^7 corner orientations
+
+  N_FLIP = 2048; // 2^11 possible edge flips
+
+  N_PARITY = 2; // 2 possible parities
+
+  N_FRtoBR = 11880; // 12!/(12-4)! permutations of FR..BR edges
+
+  N_SLICE1 = 495; // (12 choose 4) possible positions of FR..BR edges
+
+  N_SLICE2 = 24; // 4! permutations of FR..BR edges in phase 2
+
+  N_URFtoDLF = 20160; // 8!/(8-6)! permutations of URF..DLF corners
+
+  
+  // The URtoDF move table is only computed for phase 2 because the full
+  // table would have >650000 entries
+  N_URtoDF = 20160; // 8!/(8-6)! permutation of UR..DF edges in phase 2
+
+  N_URtoUL = 1320; // 12!/(12-3)! permutations of UR..UL edges
+
+  N_UBtoDF = 1320; // 12!/(12-3)! permutations of UB..DF edges
+
+  
+  // The move table for parity is so small that it's included here
+  Cube.moveTables = {
+    parity: [[1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1], [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]],
+    twist: null,
+    flip: null,
+    FRtoBR: null,
+    URFtoDLF: null,
+    URtoDF: null,
+    URtoUL: null,
+    UBtoDF: null,
+    mergeURtoDF: null
+  };
+
+  // Other move tables are computed on the fly
+  moveTableParams = {
+    // name: [scope, size]
+    twist: ['corners', N_TWIST],
+    flip: ['edges', N_FLIP],
+    FRtoBR: ['edges', N_FRtoBR],
+    URFtoDLF: ['corners', N_URFtoDLF],
+    URtoDF: ['edges', N_URtoDF],
+    URtoUL: ['edges', N_URtoUL],
+    UBtoDF: ['edges', N_UBtoDF],
+    mergeURtoDF: []
+  };
+
+  Cube.computeMoveTables = function(...tables) {
+    var len, m, name, scope, size, tableName;
+    if (tables.length === 0) {
+      tables = (function() {
+        var results;
+        results = [];
+        for (name in moveTableParams) {
+          results.push(name);
+        }
+        return results;
+      })();
+    }
+    for (m = 0, len = tables.length; m < len; m++) {
+      tableName = tables[m];
+      if (this.moveTables[tableName] !== null) {
+        // Already computed
+        continue;
+      }
+      if (tableName === 'mergeURtoDF') {
+        this.moveTables.mergeURtoDF = (function() {
+          var UBtoDF, URtoUL, o, results;
+          results = [];
+          for (URtoUL = o = 0; o <= 335; URtoUL = ++o) {
+            results.push((function() {
+              var p, results1;
+              results1 = [];
+              for (UBtoDF = p = 0; p <= 335; UBtoDF = ++p) {
+                results1.push(mergeURtoDF(URtoUL, UBtoDF));
+              }
+              return results1;
+            })());
+          }
+          return results;
+        })();
+      } else {
+        [scope, size] = moveTableParams[tableName];
+        this.moveTables[tableName] = computeMoveTable(scope, tableName, size);
+      }
+    }
+    return this;
+  };
+
+  // Phase 1: All moves are valid
+  allMoves1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+
+  // The list of next valid phase 1 moves when the given face was turned
+  // in the last move
+  nextMoves1 = (function() {
+    var face, lastFace, m, next, o, p, power, results;
+    results = [];
+    for (lastFace = m = 0; m <= 5; lastFace = ++m) {
+      next = [];
+// Don't allow commuting moves, e.g. U U'. Also make sure that
+// opposite faces are always moved in the same order, i.e. allow
+// U D but no D U. This avoids sequences like U D U'.
+      for (face = o = 0; o <= 5; face = ++o) {
+        if (face !== lastFace && face !== lastFace - 3) {
+// single, double or inverse move
+          for (power = p = 0; p <= 2; power = ++p) {
+            next.push(face * 3 + power);
+          }
+        }
+      }
+      results.push(next);
+    }
+    return results;
+  })();
+
+  // Phase 2: Double moves of all faces plus quarter moves of U and D
+  allMoves2 = [0, 1, 2, 4, 7, 9, 10, 11, 13, 16];
+
+  nextMoves2 = (function() {
+    var face, lastFace, len, m, next, o, p, power, powers, results;
+    results = [];
+    for (lastFace = m = 0; m <= 5; lastFace = ++m) {
+      next = [];
+      for (face = o = 0; o <= 5; face = ++o) {
+        if (!(face !== lastFace && face !== lastFace - 3)) {
+          continue;
+        }
+        // Allow all moves of U and D and double moves of others
+        powers = face === 0 || face === 3 ? [0, 1, 2] : [1];
+        for (p = 0, len = powers.length; p < len; p++) {
+          power = powers[p];
+          next.push(face * 3 + power);
+        }
+      }
+      results.push(next);
+    }
+    return results;
+  })();
+
+  // 8 values are encoded in one number
+  pruning = function(table, index, value) {
+    var pos, shift, slot;
+    pos = index % 8;
+    slot = index >> 3;
+    shift = pos << 2;
+    if (value != null) {
+      // Set
+      table[slot] &= ~(0xF << shift);
+      table[slot] |= value << shift;
+      return value;
+    } else {
+      // Get
+      return (table[slot] & (0xF << shift)) >>> shift;
+    }
+  };
+
+  computePruningTable = function(phase, size, currentCoords, nextIndex) {
+    var current, depth, done, index, len, m, move, moves, next, o, ref, table, x;
+    // Initialize all values to 0xF
+    table = (function() {
+      var m, ref, results;
+      results = [];
+      for (x = m = 0, ref = Math.ceil(size / 8) - 1; (0 <= ref ? m <= ref : m >= ref); x = 0 <= ref ? ++m : --m) {
+        results.push(0xFFFFFFFF);
+      }
+      return results;
+    })();
+    if (phase === 1) {
+      moves = allMoves1;
+    } else {
+      moves = allMoves2;
+    }
+    depth = 0;
+    pruning(table, 0, depth);
+    done = 1;
+    // In each iteration, take each state found in the previous depth and
+    // compute the next state. Stop when all states have been assigned a
+    // depth.
+    while (done !== size) {
+      for (index = m = 0, ref = size - 1; (0 <= ref ? m <= ref : m >= ref); index = 0 <= ref ? ++m : --m) {
+        if (!(pruning(table, index) === depth)) {
+          continue;
+        }
+        current = currentCoords(index);
+        for (o = 0, len = moves.length; o < len; o++) {
+          move = moves[o];
+          next = nextIndex(current, move);
+          if (pruning(table, next) === 0xF) {
+            pruning(table, next, depth + 1);
+            done++;
+          }
+        }
+      }
+      depth++;
+    }
+    return table;
+  };
+
+  Cube.pruningTables = {
+    sliceTwist: null,
+    sliceFlip: null,
+    sliceURFtoDLFParity: null,
+    sliceURtoDFParity: null
+  };
+
+  pruningTableParams = {
+    // name: [phase, size, currentCoords, nextIndex]
+    sliceTwist: [
+      1,
+      N_SLICE1 * N_TWIST,
+      function(index) {
+        return [index % N_SLICE1,
+      index / N_SLICE1 | 0];
+      },
+      function(current,
+      move) {
+        var newSlice,
+      newTwist,
+      slice,
+      twist;
+        [slice,
+      twist] = current;
+        newSlice = Cube.moveTables.FRtoBR[slice * 24][move] / 24 | 0;
+        newTwist = Cube.moveTables.twist[twist][move];
+        return newTwist * N_SLICE1 + newSlice;
+      }
+    ],
+    sliceFlip: [
+      1,
+      N_SLICE1 * N_FLIP,
+      function(index) {
+        return [index % N_SLICE1,
+      index / N_SLICE1 | 0];
+      },
+      function(current,
+      move) {
+        var flip,
+      newFlip,
+      newSlice,
+      slice;
+        [slice,
+      flip] = current;
+        newSlice = Cube.moveTables.FRtoBR[slice * 24][move] / 24 | 0;
+        newFlip = Cube.moveTables.flip[flip][move];
+        return newFlip * N_SLICE1 + newSlice;
+      }
+    ],
+    sliceURFtoDLFParity: [
+      2,
+      N_SLICE2 * N_URFtoDLF * N_PARITY,
+      function(index) {
+        return [index % 2,
+      (index / 2 | 0) % N_SLICE2,
+      (index / 2 | 0) / N_SLICE2 | 0];
+      },
+      function(current,
+      move) {
+        var URFtoDLF,
+      newParity,
+      newSlice,
+      newURFtoDLF,
+      parity,
+      slice;
+        [parity,
+      slice,
+      URFtoDLF] = current;
+        newParity = Cube.moveTables.parity[parity][move];
+        newSlice = Cube.moveTables.FRtoBR[slice][move];
+        newURFtoDLF = Cube.moveTables.URFtoDLF[URFtoDLF][move];
+        return (newURFtoDLF * N_SLICE2 + newSlice) * 2 + newParity;
+      }
+    ],
+    sliceURtoDFParity: [
+      2,
+      N_SLICE2 * N_URtoDF * N_PARITY,
+      function(index) {
+        return [index % 2,
+      (index / 2 | 0) % N_SLICE2,
+      (index / 2 | 0) / N_SLICE2 | 0];
+      },
+      function(current,
+      move) {
+        var URtoDF,
+      newParity,
+      newSlice,
+      newURtoDF,
+      parity,
+      slice;
+        [parity,
+      slice,
+      URtoDF] = current;
+        newParity = Cube.moveTables.parity[parity][move];
+        newSlice = Cube.moveTables.FRtoBR[slice][move];
+        newURtoDF = Cube.moveTables.URtoDF[URtoDF][move];
+        return (newURtoDF * N_SLICE2 + newSlice) * 2 + newParity;
+      }
+    ]
+  };
+
+  Cube.computePruningTables = function(...tables) {
+    var len, m, name, params, tableName;
+    if (tables.length === 0) {
+      tables = (function() {
+        var results;
+        results = [];
+        for (name in pruningTableParams) {
+          results.push(name);
+        }
+        return results;
+      })();
+    }
+    for (m = 0, len = tables.length; m < len; m++) {
+      tableName = tables[m];
+      if (this.pruningTables[tableName] !== null) {
+        // Already computed
+        continue;
+      }
+      params = pruningTableParams[tableName];
+      this.pruningTables[tableName] = computePruningTable(...params);
+    }
+    return this;
+  };
+
+  Cube.initSolver = function() {
+    Cube.computeMoveTables();
+    return Cube.computePruningTables();
+  };
+
+  Cube.prototype.solveUpright = function(maxDepth = 22) {
+    var State, freeStates, moveNames, phase1, phase1search, phase2, phase2search, solution, state, x;
+    // Names for all moves, i.e. U, U2, U', F, F2, ...
+    moveNames = (function() {
+      var face, faceName, m, o, power, powerName, result;
+      faceName = ['U', 'R', 'F', 'D', 'L', 'B'];
+      powerName = ['', '2', "'"];
+      result = [];
+      for (face = m = 0; m <= 5; face = ++m) {
+        for (power = o = 0; o <= 2; power = ++o) {
+          result.push(faceName[face] + powerName[power]);
+        }
+      }
+      return result;
+    })();
+    State = class State {
+      constructor(cube) {
+        this.parent = null;
+        this.lastMove = null;
+        this.depth = 0;
+        if (cube) {
+          this.init(cube);
+        }
+      }
+
+      init(cube) {
+        // Phase 1 coordinates
+        this.flip = cube.flip();
+        this.twist = cube.twist();
+        this.slice = cube.FRtoBR() / N_SLICE2 | 0;
+        // Phase 2 coordinates
+        this.parity = cube.cornerParity();
+        this.URFtoDLF = cube.URFtoDLF();
+        this.FRtoBR = cube.FRtoBR();
+        // These are later merged to URtoDF when phase 2 begins
+        this.URtoUL = cube.URtoUL();
+        this.UBtoDF = cube.UBtoDF();
+        return this;
+      }
+
+      solution() {
+        if (this.parent) {
+          return this.parent.solution() + moveNames[this.lastMove] + ' ';
+        } else {
+          return '';
+        }
+      }
+
+      //# Helpers
+      move(table, index, move) {
+        return Cube.moveTables[table][index][move];
+      }
+
+      pruning(table, index) {
+        return pruning(Cube.pruningTables[table], index);
+      }
+
+      //# Phase 1
+
+      // Return the next valid phase 1 moves for this state
+      moves1() {
+        if (this.lastMove !== null) {
+          return nextMoves1[this.lastMove / 3 | 0];
+        } else {
+          return allMoves1;
+        }
+      }
+
+      // Compute the minimum number of moves to the end of phase 1
+      minDist1() {
+        var d1, d2;
+        // The maximum number of moves to the end of phase 1 wrt. the
+        // combination flip and slice coordinates only
+        d1 = this.pruning('sliceFlip', N_SLICE1 * this.flip + this.slice);
+        // The combination of twist and slice coordinates
+        d2 = this.pruning('sliceTwist', N_SLICE1 * this.twist + this.slice);
+        // The true minimal distance is the maximum of these two
+        return max(d1, d2);
+      }
+
+      // Compute the next phase 1 state for the given move
+      next1(move) {
+        var next;
+        next = freeStates.pop();
+        next.parent = this;
+        next.lastMove = move;
+        next.depth = this.depth + 1;
+        next.flip = this.move('flip', this.flip, move);
+        next.twist = this.move('twist', this.twist, move);
+        next.slice = this.move('FRtoBR', this.slice * 24, move) / 24 | 0;
+        return next;
+      }
+
+      //# Phase 2
+
+      // Return the next valid phase 2 moves for this state
+      moves2() {
+        if (this.lastMove !== null) {
+          return nextMoves2[this.lastMove / 3 | 0];
+        } else {
+          return allMoves2;
+        }
+      }
+
+      // Compute the minimum number of moves to the solved cube
+      minDist2() {
+        var d1, d2, index1, index2;
+        index1 = (N_SLICE2 * this.URtoDF + this.FRtoBR) * N_PARITY + this.parity;
+        d1 = this.pruning('sliceURtoDFParity', index1);
+        index2 = (N_SLICE2 * this.URFtoDLF + this.FRtoBR) * N_PARITY + this.parity;
+        d2 = this.pruning('sliceURFtoDLFParity', index2);
+        return max(d1, d2);
+      }
+
+      // Initialize phase 2 coordinates
+      init2(top = true) {
+        if (this.parent === null) {
+          return;
+        }
+        // For other states, the phase 2 state is computed based on
+        // parent's state.
+        // Already assigned for the initial state
+        this.parent.init2(false);
+        this.URFtoDLF = this.move('URFtoDLF', this.parent.URFtoDLF, this.lastMove);
+        this.FRtoBR = this.move('FRtoBR', this.parent.FRtoBR, this.lastMove);
+        this.parity = this.move('parity', this.parent.parity, this.lastMove);
+        this.URtoUL = this.move('URtoUL', this.parent.URtoUL, this.lastMove);
+        this.UBtoDF = this.move('UBtoDF', this.parent.UBtoDF, this.lastMove);
+        if (top) {
+          // This is the initial phase 2 state. Get the URtoDF coordinate
+          // by merging URtoUL and UBtoDF
+          return this.URtoDF = this.move('mergeURtoDF', this.URtoUL, this.UBtoDF);
+        }
+      }
+
+      // Compute the next phase 2 state for the given move
+      next2(move) {
+        var next;
+        next = freeStates.pop();
+        next.parent = this;
+        next.lastMove = move;
+        next.depth = this.depth + 1;
+        next.URFtoDLF = this.move('URFtoDLF', this.URFtoDLF, move);
+        next.FRtoBR = this.move('FRtoBR', this.FRtoBR, move);
+        next.parity = this.move('parity', this.parity, move);
+        next.URtoDF = this.move('URtoDF', this.URtoDF, move);
+        return next;
+      }
+
+    };
+    solution = null;
+    phase1search = function(state) {
+      var depth, m, ref, results;
+      depth = 0;
+      results = [];
+      for (depth = m = 1, ref = maxDepth; (1 <= ref ? m <= ref : m >= ref); depth = 1 <= ref ? ++m : --m) {
+        phase1(state, depth);
+        if (solution !== null) {
+          break;
+        }
+        results.push(depth++);
+      }
+      return results;
+    };
+    phase1 = function(state, depth) {
+      var len, m, move, next, ref, ref1, results;
+      if (depth === 0) {
+        if (state.minDist1() === 0) {
+          // Make sure we don't start phase 2 with a phase 2 move as the
+          // last move in phase 1, because phase 2 would then repeat the
+          // same move.
+          if (state.lastMove === null || (ref = state.lastMove, indexOf.call(allMoves2, ref) < 0)) {
+            return phase2search(state);
+          }
+        }
+      } else if (depth > 0) {
+        if (state.minDist1() <= depth) {
+          ref1 = state.moves1();
+          results = [];
+          for (m = 0, len = ref1.length; m < len; m++) {
+            move = ref1[m];
+            next = state.next1(move);
+            phase1(next, depth - 1);
+            freeStates.push(next);
+            if (solution !== null) {
+              break;
+            } else {
+              results.push(void 0);
+            }
+          }
+          return results;
+        }
+      }
+    };
+    phase2search = function(state) {
+      var depth, m, ref, results;
+      // Initialize phase 2 coordinates
+      state.init2();
+      results = [];
+      for (depth = m = 1, ref = maxDepth - state.depth; (1 <= ref ? m <= ref : m >= ref); depth = 1 <= ref ? ++m : --m) {
+        phase2(state, depth);
+        if (solution !== null) {
+          break;
+        }
+        results.push(depth++);
+      }
+      return results;
+    };
+    phase2 = function(state, depth) {
+      var len, m, move, next, ref, results;
+      if (depth === 0) {
+        if (state.minDist2() === 0) {
+          return solution = state.solution();
+        }
+      } else if (depth > 0) {
+        if (state.minDist2() <= depth) {
+          ref = state.moves2();
+          results = [];
+          for (m = 0, len = ref.length; m < len; m++) {
+            move = ref[m];
+            next = state.next2(move);
+            phase2(next, depth - 1);
+            freeStates.push(next);
+            if (solution !== null) {
+              break;
+            } else {
+              results.push(void 0);
+            }
+          }
+          return results;
+        }
+      }
+    };
+    freeStates = (function() {
+      var m, ref, results;
+      results = [];
+      for (x = m = 0, ref = maxDepth + 1; (0 <= ref ? m <= ref : m >= ref); x = 0 <= ref ? ++m : --m) {
+        results.push(new State);
+      }
+      return results;
+    })();
+    state = freeStates.pop().init(this);
+    phase1search(state);
+    freeStates.push(state);
+    // Trim the trailing space
+    if (solution.length > 0) {
+      solution = solution.substring(0, solution.length - 1);
+    }
+    return solution;
+  };
+
+  faceNums = {
+    U: 0,
+    R: 1,
+    F: 2,
+    D: 3,
+    L: 4,
+    B: 5
+  };
+
+  faceNames = {
+    0: 'U',
+    1: 'R',
+    2: 'F',
+    3: 'D',
+    4: 'L',
+    5: 'B'
+  };
+
+  Cube.prototype.solve = function(maxDepth = 22) {
+    var clone, len, m, move, ref, rotation, solution, upright, uprightSolution;
+    clone = this.clone();
+    upright = clone.upright();
+    clone.move(upright);
+    rotation = new Cube().move(upright).center;
+    uprightSolution = clone.solveUpright(maxDepth);
+    solution = [];
+    ref = uprightSolution.split(' ');
+    for (m = 0, len = ref.length; m < len; m++) {
+      move = ref[m];
+      solution.push(faceNames[rotation[faceNums[move[0]]]]);
+      if (move.length > 1) {
+        solution[solution.length - 1] += move[1];
+      }
+    }
+    return solution.join(' ');
+  };
+
+  Cube.scramble = function() {
+    return Cube.inverse(Cube.random().solve());
+  };
+
+}).call(this);
+
+</script>
+
+<!-- Three.js for the interactive 3D cube (graceful 2D fallback if it fails to load) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+"use strict";
+/* ============================================================
+   CONSTANTS — colors, faces, and the standard color scheme.
+   ============================================================ */
+// The six sticker colors. Keys are used in CSS classes (s-W etc.)
+const COLORS = ['W','Y','R','O','B','G'];
+const COLOR_NAMES = {W:'White',Y:'Yellow',R:'Red',O:'Orange',B:'Blue',G:'Green'};
+// Reference RGB for each color — used to paint the 3D cube and to
+// classify photo pixels.
+const COLOR_RGB = {
+  W:[246,246,242], Y:[255,212,0], R:[226,36,36],
+  O:[255,122,24], B:[30,115,232], G:[31,166,74], X:[44,47,56]
+};
+
+// Face order MUST match the facelet-string order the solver expects:
+// U, R, F, D, L, B. Each face holds 9 stickers in reading order.
+const FACES = ['U','R','F','D','L','B'];
+
+// Standard Western ("BOY") scheme: which COLOR sits at each face center.
+// Centers never move on a real cube, so we lock them to this scheme.
+const CENTER_COLOR = { U:'W', R:'R', F:'G', D:'Y', L:'O', B:'B' };
+
+/* ============================================================
+   SOLVABILITY VERIFICATION
+   Standard Kociemba facelet tables (0-indexed, URFDLB order).
+   verify() returns null if solvable, or a human-readable reason.
+   ============================================================ */
+const cornerFacelet = [[8,9,20],[6,18,38],[0,36,47],[2,45,11],[29,26,15],[27,44,24],[33,53,42],[35,17,51]];
+const edgeFacelet   = [[5,10],[7,19],[3,37],[1,46],[32,16],[28,25],[30,43],[34,52],[23,12],[21,41],[50,39],[48,14]];
+const cornerColorRef= [['U','R','F'],['U','F','L'],['U','L','B'],['U','B','R'],['D','F','R'],['D','L','F'],['D','B','L'],['D','R','B']];
+const edgeColorRef  = [['U','R'],['U','F'],['U','L'],['U','B'],['D','R'],['D','F'],['D','L'],['D','B'],['F','R'],['F','L'],['B','L'],['B','R']];
+const CENTER_INDEX  = [4,13,22,31,40,49]; // U5,R5,F5,D5,L5,B5 in the string
+
+function verify(s){
+  if(!s || s.length!==54) return "The cube isn't fully colored yet.";
+  const cnt={U:0,R:0,F:0,D:0,L:0,B:0};
+  for(const ch of s){ if(!(ch in cnt)) return "Internal color error."; cnt[ch]++; }
+  for(const k in cnt) if(cnt[k]!==9)
+    return `Color counts are off: the ${k}-face color appears ${cnt[k]} times (each color must appear exactly 9).`;
+  // centers must be six distinct face letters
+  if(CENTER_INDEX.map(i=>s[i]).sort().join('')!=='BDFLRU')
+    return "The six center stickers must all be different colors.";
+
+  // --- Corners: find each piece + its orientation (twist) ---
+  const cp=new Array(8).fill(-1), co=new Array(8).fill(0);
+  for(let i=0;i<8;i++){
+    let ori;
+    for(ori=0;ori<3;ori++){ const f=s[cornerFacelet[i][ori]]; if(f==='U'||f==='D') break; }
+    if(ori===3) return "A corner is colored impossibly (no up/down color). Recheck that corner.";
+    const a=s[cornerFacelet[i][(ori+1)%3]], b=s[cornerFacelet[i][(ori+2)%3]];
+    let found=-1;
+    for(let j=0;j<8;j++) if(a===cornerColorRef[j][1] && b===cornerColorRef[j][2]){found=j;break;}
+    if(found<0) return "A corner has a color combination that can't exist on a real cube.";
+    cp[i]=found; co[i]=ori%3;
+  }
+  if(new Set(cp).size!==8) return "Two corners are identical — check for a mis-colored corner.";
+  if(co.reduce((x,y)=>x+y,0)%3!==0) return "A single corner is twisted. This state can't be solved.";
+
+  // --- Edges: find each piece + its orientation (flip) ---
+  const ep=new Array(12).fill(-1), eo=new Array(12).fill(0);
+  for(let i=0;i<12;i++){
+    const a=s[edgeFacelet[i][0]], b=s[edgeFacelet[i][1]];
+    let found=-1,ori=0;
+    for(let j=0;j<12;j++){
+      if(a===edgeColorRef[j][0] && b===edgeColorRef[j][1]){found=j;ori=0;break;}
+      if(a===edgeColorRef[j][1] && b===edgeColorRef[j][0]){found=j;ori=1;break;}
+    }
+    if(found<0) return "An edge has a color combination that can't exist on a real cube.";
+    ep[i]=found; eo[i]=ori;
+  }
+  if(new Set(ep).size!==12) return "Two edges are identical — check for a mis-colored edge.";
+  if(eo.reduce((x,y)=>x+y,0)%2!==0) return "A single edge is flipped. This state can't be solved.";
+
+  // --- Permutation parity: corners and edges must agree ---
+  const parity=a=>{let p=0;for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)if(a[i]>a[j])p^=1;return p;};
+  if(parity(cp)!==parity(ep)) return "Two pieces are swapped (parity error). This state can't be solved.";
+  return null; // solvable
+}
+/* ============================================================
+   SOLVER WORKER
+   Built from the inlined engine text so heavy work (4–5s init +
+   each solve) runs off the main thread and never freezes the UI.
+   ============================================================ */
+let solverWorker=null, workerReady=false, warming=false;
+function buildWorker(){
+  const engine = document.getElementById('cubeEngine').textContent;
+  const glue = `
+    var __inited=false;
+    self.onmessage=function(e){
+      var d=e.data;
+      try{
+        if(!__inited){ Cube.initSolver(); __inited=true; }
+        if(d.type==='warm'){ self.postMessage({type:'ready'}); return; }
+        if(d.type==='solve'){
+          var c=Cube.fromString(d.facelets);
+          var sol=c.solve();
+          self.postMessage({type:'solution', solution:sol});
+        }
+      }catch(err){ self.postMessage({type:'error', error:String((err&&err.message)||err)}); }
+    };`;
+  const blob=new Blob([engine+"\n"+glue], {type:'application/javascript'});
+  return new Worker(URL.createObjectURL(blob));
+}
+function ensureWorker(){
+  if(solverWorker) return;
+  try{ solverWorker=buildWorker(); }
+  catch(err){ console.warn('Worker unavailable, will solve on main thread', err); }
+}
+// Warm up the solver shortly after load so the first real solve is fast.
+function warmSolver(){
+  if(warming||workerReady) return; warming=true;
+  ensureWorker();
+  if(!solverWorker){ warming=false; return; }
+  const onReady=e=>{ if(e.data.type==='ready'){ workerReady=true; warming=false; solverWorker.removeEventListener('message',onReady);} };
+  solverWorker.addEventListener('message',onReady);
+  solverWorker.postMessage({type:'warm'});
+}
+
+// Solve a 54-char facelet string. Returns a Promise<string>.
+function solveFacelets(facelets){
+  return new Promise((resolve,reject)=>{
+    ensureWorker();
+    if(solverWorker){
+      const onMsg=e=>{
+        if(e.data.type==='solution'){ cleanup(); resolve(e.data.solution); }
+        else if(e.data.type==='error'){ cleanup(); reject(new Error(e.data.error)); }
+      };
+      const cleanup=()=>solverWorker.removeEventListener('message',onMsg);
+      solverWorker.addEventListener('message',onMsg);
+      solverWorker.postMessage({type:'solve', facelets});
+    } else {
+      // Fallback: solve synchronously on the main thread (may briefly block).
+      setTimeout(()=>{
+        try{
+          if(!window.__mainInited){ Cube.initSolver(); window.__mainInited=true; }
+          resolve(Cube.fromString(facelets).solve());
+        }catch(err){ reject(err); }
+      },30);
+    }
+  });
+}
+/* ============================================================
+   STATE → FACELET STRING
+   A face state is { U:[9], R:[9], ... } of COLOR letters (or null).
+   Centers define the color→face mapping, so any scheme works.
+   ============================================================ */
+function emptyState(){
+  const st={};
+  for(const f of FACES){ st[f]=new Array(9).fill(null); st[f][4]=CENTER_COLOR[f]; }
+  return st;
+}
+function solvedState(){
+  const st={};
+  for(const f of FACES){ st[f]=new Array(9).fill(CENTER_COLOR[f]); }
+  return st;
+}
+// Map every sticker color to a face letter via the center colors,
+// then assemble the 54-char URFDLB string.
+function stateToFacelets(st){
+  const colorToFace={};
+  for(const f of FACES){ colorToFace[ st[f][4] ] = f; }
+  let out='';
+  for(const f of FACES){
+    for(let i=0;i<9;i++){
+      const col=st[f][i];
+      if(col==null) return null;            // not fully colored
+      const face=colorToFace[col];
+      if(!face) return null;                 // color with no matching center
+      out+=face;
+    }
+  }
+  return out;
+}
+// Build a state from a solved-cube facelet string (used by scrambles).
+function faceletsToState(s){
+  const faceToColor={U:'W',R:'R',F:'G',D:'Y',L:'O',B:'B'};
+  const st={};
+  FACES.forEach((f,fi)=>{ st[f]=[]; for(let i=0;i<9;i++) st[f].push(faceToColor[s[fi*9+i]]); });
+  return st;
+}
+// Count how many stickers of each color are placed.
+function colorCounts(st){
+  const c={W:0,Y:0,R:0,O:0,B:0,G:0,X:0};
+  for(const f of FACES) for(const v of st[f]) (v==null)?c.X++:c[v]++;
+  return c;
+}
+/* ============================================================
+   SHARED UI HELPERS
+   ============================================================ */
+const overlay=document.getElementById('overlay');
+const overlayMsg=document.getElementById('overlayMsg');
+function showOverlay(msg){ overlayMsg.textContent=msg; overlay.classList.add('show'); }
+function hideOverlay(){ overlay.classList.remove('show'); }
+
+// Build a color palette (swatches + eraser) bound to a setter.
+function buildPalette(host, onPick, initial='R'){
+  host.innerHTML='';
+  const state={current:initial};
+  const make=(col,label)=>{
+    const b=document.createElement('button');
+    b.className='swatch'+(col==='X'?' eraser':'');
+    b.style.background=col==='X'?'':`var(--c-${col})`;
+    if(col==='X') b.textContent='⌫';
+    b.title=col==='X'?'Eraser':COLOR_NAMES[col];
+    b.setAttribute('aria-pressed', col===initial?'true':'false');
+    b.setAttribute('aria-label', col==='X'?'Eraser':COLOR_NAMES[col]);
+    b.onclick=()=>{
+      state.current=col;
+      host.querySelectorAll('.swatch').forEach(s=>s.setAttribute('aria-pressed','false'));
+      b.setAttribute('aria-pressed','true');
+      onPick(col);
+    };
+    host.appendChild(b);
+  };
+  COLORS.forEach(c=>make(c));
+  make('X');
+  return state;
+}
+
+// Render counts chips; flags any color that isn't exactly 9.
+function renderCounts(host, st){
+  const c=colorCounts(st); host.innerHTML='';
+  COLORS.forEach(col=>{
+    const ok=c[col]===9;
+    const el=document.createElement('span');
+    el.className='count'+(ok?'':' bad');
+    el.innerHTML=`<i style="background:var(--c-${col})"></i>${c[col]}/9`;
+    host.appendChild(el);
+  });
+  if(c.X>0){
+    const el=document.createElement('span');
+    el.className='count'; el.innerHTML=`<i style="background:var(--c-X)"></i>${c.X} left`;
+    host.appendChild(el);
+  }
+}
+
+/* ============================================================
+   2D NET EDITOR (unfolded cross)
+   Used for image-detection correction and as the 3D fallback.
+   ============================================================ */
+function buildNet(host, st, getColor, onChange){
+  host.innerHTML='';
+  // Render in net layout order; grid-area placement handles position.
+  for(const f of ['U','L','F','R','B','D']){
+    const face=document.createElement('div');
+    face.className='face'; face.dataset.face=f;
+    const lbl=document.createElement('div'); lbl.className='lbl'; lbl.textContent=f; face.appendChild(lbl);
+    for(let i=0;i<9;i++){
+      const cell=document.createElement('div');
+      const col=st[f][i]||'X';
+      cell.className='cell s-'+col+(i===4?' locked':'');
+      cell.title=`${f}${i+1}`;
+      if(i!==4){
+        cell.onclick=()=>{
+          const c=getColor();
+          st[f][i] = (c==='X')?null:c;
+          cell.className='cell s-'+(st[f][i]||'X');
+          onChange&&onChange();
+        };
+      }
+      face.appendChild(cell);
+    }
+    host.appendChild(face);
+  }
+}
+function refreshNet(host, st){
+  host.querySelectorAll('.face').forEach(face=>{
+    const f=face.dataset.face;
+    const cells=face.querySelectorAll('.cell');
+    for(let i=0;i<9;i++) cells[i].className='cell s-'+(st[f][i]||'X')+(i===4?' locked':'');
+  });
+}
+/* ============================================================
+   SHARED PLAYBACK SPEED  (used by the manual-mode 3D player)
+   SPEED is 1..5 (slow..fast). Higher = shorter per-move tween and
+   shorter gap between moves. Lives at top scope so the slider in
+   renderSolution and the 3D animator both read the same value.
+   ============================================================ */
+let SPEED = 3;
+const MOVE_DUR = [900, 650, 470, 330, 210];   // ms per 90° turn
+const MOVE_GAP = [360, 250, 165, 95, 45];      // ms pause between moves
+const moveDuration = () => MOVE_DUR[SPEED - 1];
+const moveGap      = () => MOVE_GAP[SPEED - 1];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// tiny DOM helpers
+function elc(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+function mkbtn(txt, cls){ const b = document.createElement('button'); b.className = 'btn' + (cls ? (' ' + cls) : ''); b.textContent = txt; return b; }
+
+// Turn a move token (e.g. "R'", "U2") into friendly words for beginners.
+function describeMove(m){
+  const face = {U:'Top', D:'Bottom', L:'Left', R:'Right', F:'Front', B:'Back'}[m[0]] || m[0];
+  let dir, amt;
+  if(m.includes('2')){ dir = 'half turn'; amt = '180°'; }
+  else if(m.includes("'")){ dir = 'counter-clockwise'; amt = '90°'; }
+  else { dir = 'clockwise'; amt = '90°'; }
+  return {face, dir, amt};
+}
+
+/* ============================================================
+   SOLUTION RENDERING + PLAYER
+   If opts.animator is supplied (manual mode, 3D present) the cube
+   turns itself: Play/Pause, Back/Next, a speed slider, clickable
+   move chips, and a plain-language readout of the current move.
+   Without an animator (image mode) it falls back to a simple
+   highlight-only stepper.
+   ============================================================ */
+function renderSolution(host, solution, opts){
+  opts = opts || {};
+  const animator = opts.animator || null;
+  host.innerHTML = '';
+
+  if(solution === ''){
+    host.innerHTML = '<div class="status ok">This cube is already solved! ✓</div>';
+    if(animator && animator.reset) animator.reset();
+    return;
+  }
+
+  const moves = solution.trim().split(/\s+/);
+
+  const head = elc('div', 'status ok');
+  head.innerHTML = `Done! Solved in <b>${moves.length}</b> moves.`;
+  host.appendChild(head);
+
+  // Move chips (clickable to jump to that point)
+  const movesEl = elc('div', 'moves');
+  moves.forEach((m, idx) => {
+    const el = elc('div', 'move');
+    el.innerHTML = `${m}<span class="n">${idx + 1}</span>`;
+    el.dataset.i = idx;
+    movesEl.appendChild(el);
+  });
+  host.appendChild(movesEl);
+
+  // pos = number of moves applied so far (0..N)
+  let pos = 0, playing = false, busy = false, token = 0;
+
+  // refs filled depending on mode
+  let nowBadge = null, nowDesc = null, posLbl = null, prevBtn = null, nextBtn = null, playBtn = null;
+
+  const paint = () => {
+    movesEl.querySelectorAll('.move').forEach((el, i) => el.classList.toggle('active', i === pos - 1));
+    if(nowBadge){
+      if(pos > 0){
+        const d = describeMove(moves[pos - 1]);
+        nowBadge.textContent = moves[pos - 1];
+        nowDesc.innerHTML = `${d.face} face — ${d.dir}<small>move ${pos} of ${moves.length} · ${d.amt}</small>`;
+      } else {
+        nowBadge.textContent = '–';
+        nowDesc.innerHTML = `Ready when you are<small>press ▶ to watch the cube solve itself</small>`;
+      }
+    }
+    if(posLbl) posLbl.textContent = `${pos} / ${moves.length}`;
+    if(prevBtn) prevBtn.disabled = busy || pos <= 0;
+    if(nextBtn) nextBtn.disabled = busy || pos >= moves.length;
+    if(playBtn) playBtn.textContent = playing ? '⏸ Pause' : (pos >= moves.length ? '↺ Replay' : '▶ Play');
+  };
+
+  async function stepNext(){
+    if(busy || pos >= moves.length) return;
+    busy = true; paint();
+    if(animator && animator.forward) await animator.forward(moves[pos]);
+    pos++; busy = false; paint();
+  }
+  async function stepPrev(){
+    if(busy || pos <= 0) return;
+    busy = true; paint();
+    if(animator && animator.backward) await animator.backward(moves[pos - 1]);
+    pos--; busy = false; paint();
+  }
+  async function jumpTo(target){
+    const myToken = ++token;
+    while(pos < target && myToken === token){ await stepNext(); }
+    while(pos > target && myToken === token){ await stepPrev(); }
+  }
+  async function resetToStart(){
+    token++;
+    if(animator && animator.reset) animator.reset();
+    pos = 0; paint();
+  }
+  async function play(){
+    if(playing){ playing = false; token++; paint(); return; }     // pause
+    if(pos >= moves.length) await resetToStart();                  // replay from start
+    const myToken = ++token; playing = true; paint();
+    while(playing && myToken === token && pos < moves.length){
+      await stepNext();
+      if(!playing || myToken !== token) break;
+      await sleep(moveGap());
+    }
+    playing = false; paint();
+  }
+
+  if(animator){
+    // ---- Rich player (3D cube turns itself) ----
+    const player = elc('div', 'player');
+
+    const now = elc('div', 'now');
+    nowBadge = elc('div', 'badge');
+    nowDesc  = elc('div', 'desc');
+    now.append(nowBadge, nowDesc);
+    player.appendChild(now);
+
+    const controls = elc('div', 'controls');
+    prevBtn = mkbtn('‹ Back');
+    playBtn = mkbtn('▶ Play', 'primary'); playBtn.classList.add('iconbtn');
+    nextBtn = mkbtn('Next ›');
+    const restart = mkbtn('↺ Restart');
+    controls.append(prevBtn, playBtn, nextBtn, restart);
+    player.appendChild(controls);
+
+    const speed = elc('div', 'speed');
+    const turtle = elc('span'); turtle.textContent = '🐢';
+    const range = document.createElement('input');
+    range.type = 'range'; range.min = '1'; range.max = '5'; range.step = '1'; range.value = String(SPEED);
+    range.setAttribute('aria-label', 'Turn speed');
+    const hare = elc('span'); hare.textContent = '🐇';
+    const lab = elc('span', 'lab'); lab.textContent = 'Speed';
+    speed.append(lab, turtle, range, hare);
+    player.appendChild(speed);
+
+    range.oninput = () => { SPEED = +range.value; };
+    prevBtn.onclick = () => { playing = false; token++; stepPrev(); };
+    nextBtn.onclick = () => { playing = false; token++; stepNext(); };
+    playBtn.onclick = () => play();
+    restart.onclick = () => { playing = false; resetToStart(); };
+
+    host.appendChild(player);
+  } else {
+    // ---- Simple highlight stepper (image mode, no 3D cube) ----
+    const step = elc('div', 'stepper');
+    prevBtn = mkbtn('‹ Prev');
+    nextBtn = mkbtn('Next ›');
+    posLbl  = elc('span', 'pos');
+    step.append(prevBtn, posLbl, nextBtn);
+    host.appendChild(step);
+    prevBtn.onclick = () => { if(pos > 0){ pos--; paint(); } };
+    nextBtn.onclick = () => { if(pos < moves.length){ pos++; paint(); } };
+  }
+
+  // Clickable move chips (jump). Animated in manual mode, instant in image mode.
+  movesEl.querySelectorAll('.move').forEach(elm => {
+    elm.onclick = () => {
+      const target = (+elm.dataset.i) + 1;
+      if(animator){ playing = false; jumpTo(target); }
+      else { pos = target; paint(); }
+    };
+  });
+
+  paint();
+
+  // Notation legend + orientation reminder
+  const legend = elc('div', 'legend');
+  legend.innerHTML = `<b>How to read the moves.</b> Each letter is a quarter turn of one face, looking straight at it:
+    <code>U</code> Up · <code>D</code> Down · <code>L</code> Left · <code>R</code> Right · <code>F</code> Front · <code>B</code> Back.
+    A <code>'</code> means turn it the other way (counter-clockwise); a <code>2</code> means a half turn.
+    Keep <b>white on top</b> and <b>green facing you</b> the whole time. (Or just press play and copy the cube!)`;
+  host.appendChild(legend);
+
+  // Copy button
+  const copyRow = elc('div', 'btnrow');
+  const copy = mkbtn('Copy moves');
+  copy.onclick = () => {
+    navigator.clipboard && navigator.clipboard.writeText(moves.join(' '));
+    copy.textContent = 'Copied ✓';
+    setTimeout(() => copy.textContent = 'Copy moves', 1200);
+  };
+  copyRow.appendChild(copy);
+  host.appendChild(copyRow);
+}
+
+/* ============================================================
+   VALIDATE + SOLVE  (shared by both tabs)
+   opts.animatorFactory(baseFacelets) -> animator  (manual mode)
+   ============================================================ */
+async function runSolve(st, statusEl, solutionEl, opts){
+  opts = opts || {};
+  solutionEl.innerHTML = '';
+  const facelets = stateToFacelets(st);
+  if(facelets === null){
+    const c = colorCounts(st);
+    statusEl.className = 'status err';
+    statusEl.textContent = `Color every sticker first — ${c.X} still to go.`;
+    return;
+  }
+  const why = verify(facelets);
+  if(why){ statusEl.className = 'status err'; statusEl.textContent = '⚠ ' + why; return; }
+
+  statusEl.className = 'status info';
+  statusEl.innerHTML = '<span class="spin"></span>' + (workerReady ? 'Solving…' : 'Warming up the solver (first run ~5s)…');
+  try{
+    const solution = await solveFacelets(facelets);
+    statusEl.className = 'status'; statusEl.textContent = '';
+    const useOpts = (opts.animatorFactory) ? { animator: opts.animatorFactory(facelets) } : {};
+    renderSolution(solutionEl, solution, useOpts);
+  }catch(err){
+    statusEl.className = 'status err';
+    statusEl.textContent = 'Could not solve this configuration. ' + (err.message || '');
+  }
+}
+// Draw an image into a square canvas using cover-fit (center crop).
+function drawCover(canvas, img){
+  const ctx=canvas.getContext('2d');
+  const s=Math.min(img.width,img.height);
+  const sx=(img.width-s)/2, sy=(img.height-s)/2;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(img,sx,sy,s,s,0,0,canvas.width,canvas.height);
+}
+
+// Convert RGB → HSV (h in [0,360), s,v in [0,1]).
+function rgb2hsv(r,g,b){
+  r/=255;g/=255;b/=255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn;
+  let h=0;
+  if(d){
+    if(mx===r) h=((g-b)/d)%6;
+    else if(mx===g) h=(b-r)/d+2;
+    else h=(r-g)/d+4;
+    h*=60; if(h<0)h+=360;
+  }
+  return [h, mx?d/mx:0, mx];
+}
+// Classify an averaged RGB sample into one of the six cube colors.
+// The six colors separate cleanly in hue, with white as the low-sat case.
+function classify(r,g,b){
+  const [h,s,v]=rgb2hsv(r,g,b);
+  if(s<0.22 && v>0.45) return 'W';        // washed-out / bright + low saturation
+  if(v<0.18) return 'B';                   // very dark → most likely blue under poor light
+  if(h<14||h>=345) return 'R';
+  if(h<40)  return 'O';
+  if(h<70)  return 'Y';
+  if(h<170) return 'G';
+  return 'B';                              // 170–345 → blue
+}
+// Sample 9 stickers from a face image (assumes the face fills the frame).
+function sampleFace(img){
+  const N=120, c=document.createElement('canvas'); c.width=N;c.height=N;
+  const ctx=c.getContext('2d');
+  const s=Math.min(img.width,img.height), sx=(img.width-s)/2, sy=(img.height-s)/2;
+  ctx.drawImage(img,sx,sy,s,s,0,0,N,N);
+  const out=[];
+  for(let r=0;r<3;r++) for(let col=0;col<3;col++){
+    const cx=Math.round((0.2+col*0.3)*N), cy=Math.round((0.2+r*0.3)*N);
+    // average a small patch to reduce noise
+    let R=0,G=0,B=0,n=0;
+    const data=ctx.getImageData(cx-6,cy-6,12,12).data;
+    for(let i=0;i<data.length;i+=4){ R+=data[i];G+=data[i+1];B+=data[i+2];n++; }
+    out.push(classify(R/n,G/n,B/n));
+  }
+  return out;
+}
+/* ============================================================
+   TAB SWITCHING
+   ============================================================ */
+const tabImg = document.getElementById('tab-img'), tabMan = document.getElementById('tab-man');
+const panelImg = document.getElementById('panel-img'), panelMan = document.getElementById('panel-man');
+function selectTab(which){
+  const img = which === 'img';
+  tabImg.setAttribute('aria-selected', img); tabMan.setAttribute('aria-selected', !img);
+  panelImg.hidden = !img; panelMan.hidden = img;
+  if(!img && cube3d && cube3d.onShow) cube3d.onShow();   // resize 3D canvas when revealed
+}
+tabImg.onclick = () => selectTab('img');
+tabMan.onclick = () => selectTab('man');
+
+/* ============================================================
+   MANUAL MODE
+   ============================================================ */
+let manState = emptyState();
+const manCounts = document.getElementById('manCounts');
+const manSolveStatus = document.getElementById('manSolveStatus');
+const manSolution = document.getElementById('manSolution');
+let manPaint = 'R';
+buildPalette(document.getElementById('manPalette'), c => { manPaint = c; }, 'R');
+
+let cube3d = null;   // set up below if Three.js is present
+
+function manAfterChange(){ renderCounts(manCounts, manState); }
+function manReset(st){
+  manState = st;
+  if(cube3d) cube3d.sync(manState);
+  refreshNet(document.getElementById('manNet'), manState);
+  manAfterChange();
+  manSolution.innerHTML = ''; manSolveStatus.textContent = '';
+}
+
+// 2D fallback net (always built; shown only if 3D is unavailable)
+buildNet(document.getElementById('manNet'), manState, () => manPaint, manAfterChange);
+
+/* ---- Three.js 3D cube (paintable + self-solving animation) ---- */
+function init3D(){
+  if(typeof THREE === 'undefined'){
+    document.querySelector('#panel-man .cube-fallback').style.display = 'block';
+    document.getElementById('cube3d').style.display = 'none';
+    return null;
+  }
+  const canvas = document.getElementById('cube3d');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  camera.position.set(5.2, 4.4, 6.2);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.82));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.5); dir.position.set(6, 9, 8); scene.add(dir);
+  const dir2 = new THREE.DirectionalLight(0xffffff, 0.22); dir2.position.set(-6, -4, -6); scene.add(dir2);
+
+  // 27 black cubie bodies (the cube's "plastic"). Crucially these turn
+  // WITH their layer, so a rotating face never exposes a static core —
+  // no black hole opens up mid-turn. They sit just behind the stickers
+  // and fill the gaps, giving the usual thin black grid lines.
+  const bodyMat = new THREE.MeshStandardMaterial({color:0x161616, roughness:.92, metalness:0});
+  const bodyGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
+  const bodies = [];
+  for(let x = -1; x <= 1; x++) for(let y = -1; y <= 1; y++) for(let z = -1; z <= 1; z++){
+    const b = new THREE.Mesh(bodyGeo, bodyMat);
+    b.position.set(x, y, z);
+    b.userData = {body:true, homePos:b.position.clone(), homeQuat:b.quaternion.clone()};
+    scene.add(b); bodies.push(b);
+  }
+
+  // Per-face frames: outward normal n, in-plane "right" and "down"
+  // chosen so sticker index r*3+c matches the URFDLB facelet order.
+  const FRAMES = {
+    U:{n:[0,1,0],  right:[1,0,0], down:[0,0,1]},
+    R:{n:[1,0,0],  right:[0,0,-1],down:[0,-1,0]},
+    F:{n:[0,0,1],  right:[1,0,0], down:[0,-1,0]},
+    D:{n:[0,-1,0], right:[1,0,0], down:[0,0,-1]},
+    L:{n:[-1,0,0], right:[0,0,1], down:[0,-1,0]},
+    B:{n:[0,0,-1], right:[-1,0,0],down:[0,-1,0]},
+  };
+  const v = (a, s) => [a[0]*s, a[1]*s, a[2]*s];
+  const add = (...vs) => vs.reduce((p, c) => [p[0]+c[0], p[1]+c[1], p[2]+c[2]], [0,0,0]);
+  const rgbHex = a => (a[0] << 16) | (a[1] << 8) | a[2];
+
+  const tiles = []; // {mesh, userData:{face,index,locked,homePos,homeQuat}}
+  for(const f of FACES){
+    const fr = FRAMES[f];
+    const ax = fr.n[0] ? 0 : 1, ay = fr.n[1] ? 0 : 1, az = fr.n[2] ? 0 : 1; // 1 where NOT the normal axis
+    const geo = new THREE.BoxGeometry(ax ? 0.9 : 0.06, ay ? 0.9 : 0.06, az ? 0.9 : 0.06);
+    for(let r = 0; r < 3; r++) for(let c = 0; c < 3; c++){
+      const idx = r*3 + c;
+      const col = manState[f][idx] || 'X';
+      const mat = new THREE.MeshStandardMaterial({color:rgbHex(COLOR_RGB[col]), roughness:.42, metalness:.02});
+      const mesh = new THREE.Mesh(geo, mat);
+      const pos = add(v(fr.n, 1.51), v(fr.right, (c - 1)), v(fr.down, (r - 1)));
+      mesh.position.set(pos[0], pos[1], pos[2]);
+      mesh.userData = {face:f, index:idx, locked:idx === 4, homePos:mesh.position.clone(), homeQuat:mesh.quaternion.clone()};
+      scene.add(mesh); tiles.push(mesh);
+    }
+  }
+
+  // Controls (rotate only)
+  let controls = null;
+  if(THREE.OrbitControls){
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enablePan = false; controls.enableZoom = true;
+    controls.minDistance = 6; controls.maxDistance = 14;
+    controls.rotateSpeed = .9; controls.enableDamping = true; controls.dampingFactor = .12;
+  }
+  // Gentle idle auto-rotate until the user interacts or playback starts.
+  let auto = !window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  renderer.domElement.addEventListener('pointerdown', () => auto = false);
+
+  // ---- Layer-rotation animation ----
+  // Threshold 0.5 catches a layer's stickers (at 1.0 / 1.51) and its
+  // black bodies (at 1.0) while excluding the middle slice (at 0).
+  const SEL = {
+    U:p => p.y >  0.5, D:p => p.y < -0.5,
+    R:p => p.x >  0.5, L:p => p.x < -0.5,
+    F:p => p.z >  0.5, B:p => p.z < -0.5,
+  };
+  const AX = {
+    U:new THREE.Vector3(0,1,0), D:new THREE.Vector3(0,1,0),
+    R:new THREE.Vector3(1,0,0), L:new THREE.Vector3(1,0,0),
+    F:new THREE.Vector3(0,0,1), B:new THREE.Vector3(0,0,1),
+  };
+  const BASE = {U:-1, D:1, R:-1, L:1, F:-1, B:1};   // sign of a clockwise quarter turn about AX
+  function moveAngle(m){
+    const q = Math.PI / 2; let s = BASE[m[0]];
+    if(m.includes("'")) s = -s;
+    const mag = m.includes('2') ? 2 : 1;
+    return s * q * mag;
+  }
+  function invMove(m){ if(m.includes('2')) return m; if(m.includes("'")) return m[0]; return m[0] + "'"; }
+
+  let animBusy = false;
+  function homeAll(){
+    tiles.forEach(t => { t.position.copy(t.userData.homePos); t.quaternion.copy(t.userData.homeQuat); });
+    bodies.forEach(b => { b.position.copy(b.userData.homePos); b.quaternion.copy(b.userData.homeQuat); });
+  }
+  // Visually rotate one layer, then "bake": snap tiles home and let
+  // applyLogical() update the engine state + recolor. A true 90° turn
+  // maps the layer's tiles exactly onto home slots, so the snap is seamless.
+  function animateLayer(move, durMs, applyLogical){
+    return new Promise(resolve => {
+      const face = move[0];
+      const group = new THREE.Group(); scene.add(group);
+      // Rotate the layer's stickers AND its black bodies together.
+      const layer = tiles.filter(t => SEL[face](t.position))
+                         .concat(bodies.filter(b => SEL[face](b.position)));
+      layer.forEach(t => group.attach(t));
+      animBusy = true;
+      const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+      const dur = reduce ? 0 : Math.max(0, durMs);
+      const ang = moveAngle(move);
+      const t0 = performance.now();
+      function frame(now){
+        const k = dur <= 0 ? 1 : Math.min(1, (now - t0) / dur);
+        const e = k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;  // easeInOutQuad
+        group.setRotationFromAxisAngle(AX[face], ang * e);
+        renderer.render(scene, camera);
+        if(k < 1){ requestAnimationFrame(frame); }
+        else {
+          layer.forEach(t => scene.attach(t));   // reparent, preserving world transform
+          scene.remove(group);
+          applyLogical && applyLogical();          // engine.move + recolor
+          homeAll();                               // snap every tile to its home slot
+          animBusy = false;
+          resolve();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  // Click-to-paint, distinguished from drag-to-rotate by movement.
+  const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+  let downPt = null;
+  canvas.addEventListener('pointerdown', e => { downPt = {x:e.clientX, y:e.clientY, t:Date.now()}; });
+  canvas.addEventListener('pointerup', e => {
+    if(!downPt) return;
+    const moved = Math.hypot(e.clientX - downPt.x, e.clientY - downPt.y);
+    const quick = Date.now() - downPt.t < 500;
+    downPt = null;
+    if(animBusy) return;                 // don't paint mid-turn
+    if(moved > 6 || !quick) return;      // it was a drag → ignore
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(tiles);
+    if(hits.length){
+      const t = hits[0].object;
+      if(t.userData.locked) return;      // centers are fixed
+      const col = (manPaint === 'X') ? null : manPaint;
+      manState[t.userData.face][t.userData.index] = col;
+      t.material.color.setHex(rgbHex(COLOR_RGB[col || 'X']));
+      refreshNet(document.getElementById('manNet'), manState);
+      manAfterChange();
+    }
+  });
+
+  function resize(){
+    const r = canvas.getBoundingClientRect();
+    if(r.width < 2) return;
+    renderer.setSize(r.width, r.width, false);
+    camera.aspect = 1; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize); resize();
+
+  function loop(){
+    requestAnimationFrame(loop);
+    if(auto && !animBusy){ scene.rotation.y += 0.0045; }
+    controls && controls.update();
+    renderer.render(scene, camera);
+  }
+  loop();
+
+  return {
+    onShow: resize,
+    // Re-color all tiles from a face-state (after scramble/reset/clear/paint).
+    sync(st){
+      homeAll();
+      tiles.forEach(t => {
+        const col = st[t.userData.face][t.userData.index] || 'X';
+        t.material.color.setHex(rgbHex(COLOR_RGB[col]));
+      });
+    },
+    // Build an animator bound to a base (scramble) facelet string. The
+    // player calls forward/backward/reset; the cube turns to match.
+    makeAnimator(baseFacelets){
+      auto = false;                       // stop idle spin so the solve is easy to follow
+      let animCube = Cube.fromString(baseFacelets);
+      const recolor = () => {
+        const st = faceletsToState(animCube.asString());
+        tiles.forEach(t => {
+          const col = st[t.userData.face][t.userData.index] || 'X';
+          t.material.color.setHex(rgbHex(COLOR_RGB[col]));
+        });
+      };
+      const reset = () => { animCube = Cube.fromString(baseFacelets); homeAll(); recolor(); };
+      reset();
+      return {
+        reset,
+        forward(move){ return animateLayer(move, moveDuration(), () => { animCube.move(move); recolor(); }); },
+        backward(move){ const inv = invMove(move); return animateLayer(inv, moveDuration(), () => { animCube.move(inv); recolor(); }); },
+      };
+    },
+  };
+}
+cube3d = init3D();
+
+// Manual buttons
+document.getElementById('manSolvedBtn').onclick = () => manReset(solvedState());
+document.getElementById('manClearBtn').onclick  = () => manReset(emptyState());
+document.getElementById('manScrambleBtn').onclick = () => {
+  try{ manReset(faceletsToState(Cube.random().asString())); }
+  catch(err){ manReset(emptyState()); }
+};
+document.getElementById('manSolveBtn').onclick = () => runSolve(
+  manState, manSolveStatus, manSolution,
+  { animatorFactory: (cube3d && cube3d.makeAnimator) ? (base => cube3d.makeAnimator(base)) : null }
+);
+manAfterChange();
+/* ============================================================
+   IMAGE MODE
+   Upload 6 faces → sample a 3×3 grid → classify colors in HSV →
+   show in an editable map → solve.
+   Slots are labeled by their MIDDLE color (which never moves) plus a
+   plain-language position, so beginners don't need to know cube
+   orientation — they just match each photo to its middle color.
+   ============================================================ */
+const POS_WORD = {U:'Top', D:'Bottom', F:'Front', B:'Back', L:'Left', R:'Right'};
+// Display order pairs opposite faces; each entry still carries its own face.
+const IMG_SLOTS = [
+  {face:'U', center:'W'},
+  {face:'D', center:'Y'},
+  {face:'F', center:'G'},
+  {face:'B', center:'B'},
+  {face:'L', center:'O'},
+  {face:'R', center:'R'},
+];
+let imgState = emptyState();
+let imgPaint = 'R';
+const imgSlotsHost = document.getElementById('uploadSlots');
+const imgFiles = {}; // face -> HTMLImageElement
+buildPalette(document.getElementById('imgPalette'), c => { imgPaint = c; }, 'R');
+buildNet(document.getElementById('imgNet'), imgState, () => imgPaint, () => renderCounts(document.getElementById('imgCounts'), imgState));
+renderCounts(document.getElementById('imgCounts'), imgState);
+
+// Build the six friendly upload slots.
+IMG_SLOTS.forEach(slot => {
+  const colorName = COLOR_NAMES[slot.center];
+  const posWord = POS_WORD[slot.face];
+  const el = document.createElement('label');
+  el.className = 'slot'; el.dataset.face = slot.face;
+  el.innerHTML = `
+    <div class="ph">
+      <div class="center" style="background:var(--c-${slot.center})"></div>
+      <div class="txt">
+        <span class="pos">${posWord}</span>
+        <span class="name">${colorName} middle</span>
+      </div>
+    </div>
+    <canvas width="120" height="120"></canvas>
+    <input type="file" accept="image/*" />`;
+  const input = el.querySelector('input');
+  input.addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0]; if(!file) return;
+    const img = new Image();
+    img.onload = () => {
+      imgFiles[slot.face] = img;
+      drawCover(el.querySelector('canvas'), img);
+      el.classList.add('has-img');
+    };
+    img.src = URL.createObjectURL(file);
+  });
+  imgSlotsHost.appendChild(el);
+});
+
+// "Analyze photos" — show loading overlay, detect, fill the map.
+document.getElementById('analyzeBtn').onclick = () => {
+  const missing = IMG_SLOTS.filter(s => !imgFiles[s.face]).map(s => `${POS_WORD[s.face]} (${COLOR_NAMES[s.center].toLowerCase()})`);
+  const st = document.getElementById('imgStatus');
+  if(missing.length){
+    st.className = 'status err';
+    st.textContent = 'Add a photo for: ' + missing.join(', ') + '.';
+    return;
+  }
+  st.className = 'status info'; st.textContent = '';
+  showOverlay('Reading your photos…');
+  // Defer so the overlay paints before the (synchronous) sampling work.
+  setTimeout(() => {
+    try{
+      for(const slot of IMG_SLOTS){
+        const colors = sampleFace(imgFiles[slot.face]);
+        colors[4] = CENTER_COLOR[slot.face];   // keep the center fixed to its scheme
+        imgState[slot.face] = colors;
+      }
+      refreshNet(document.getElementById('imgNet'), imgState);
+      renderCounts(document.getElementById('imgCounts'), imgState);
+      st.className = 'status ok';
+      st.textContent = 'Got it! Check the map on the right and fix any wrong stickers, then Solve.';
+    }catch(err){
+      st.className = 'status err'; st.textContent = 'Could not read the photos. Try clearer, well-lit shots.';
+    }finally{ hideOverlay(); }
+  }, 60);
+};
+
+// Sample: synthesize 6 face images from a real scramble so the flow is testable.
+document.getElementById('imgDemoBtn').onclick = () => {
+  let st;
+  try{ st = faceletsToState(Cube.random().asString()); }catch(e){ st = solvedState(); }
+  IMG_SLOTS.forEach(slot => {
+    const cv = document.querySelector(`.slot[data-face="${slot.face}"] canvas`);
+    const ctx = cv.getContext('2d'); const N = cv.width, cell = N / 3;
+    for(let i = 0; i < 9; i++){
+      const [R, G, B] = COLOR_RGB[st[slot.face][i]];
+      ctx.fillStyle = `rgb(${R},${G},${B})`;
+      ctx.fillRect((i % 3) * cell + 2, ((i / 3) | 0) * cell + 2, cell - 4, cell - 4);
+    }
+    const im = new Image(); im.onload = () => { imgFiles[slot.face] = im; }; im.src = cv.toDataURL();
+    document.querySelector(`.slot[data-face="${slot.face}"]`).classList.add('has-img');
+  });
+  document.getElementById('imgStatus').className = 'status info';
+  document.getElementById('imgStatus').textContent = 'Sample cube loaded. Now press “Analyze photos”.';
+};
+
+document.getElementById('imgClearBtn').onclick = () => {
+  for(const k in imgFiles) delete imgFiles[k];
+  document.querySelectorAll('#panel-img .slot').forEach(s => s.classList.remove('has-img'));
+  imgState = emptyState();
+  buildNet(document.getElementById('imgNet'), imgState, () => imgPaint, () => renderCounts(document.getElementById('imgCounts'), imgState));
+  renderCounts(document.getElementById('imgCounts'), imgState);
+  document.getElementById('imgStatus').textContent = '';
+  document.getElementById('imgSolution').innerHTML = '';
+  document.getElementById('imgSolveStatus').textContent = '';
+};
+
+document.getElementById('imgSolveBtn').onclick = () =>
+  runSolve(imgState, document.getElementById('imgSolveStatus'), document.getElementById('imgSolution'));
+
+/* ============================================================
+   STARTUP — warm the solver shortly after load.
+   ============================================================ */
+window.addEventListener('load', () => { setTimeout(warmSolver, 400); });
+</script>
+</body>
+</html>
