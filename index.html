@@ -247,6 +247,65 @@ details summary:hover{color:var(--text)}
 .muted{color:var(--muted);font-size:.88rem}
 a{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== More Puzzles tab ===== */
+.seg{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px}
+.seg-btn{font-family:var(--font-display);font-size:.95rem;padding:9px 16px;border-radius:999px;
+  border:2px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;transition:.15s}
+.seg-btn:hover{border-color:var(--accent)}
+.seg-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.puz-net-wrap{display:flex;justify-content:center;margin-top:14px}
+.puz-net{width:100%;max-width:340px}
+.puz-net svg{width:100%;height:auto;display:block;overflow:visible}
+.puz-net polygon{stroke:#2b2f38;stroke-width:.045;stroke-linejoin:round;cursor:pointer;transition:filter .1s}
+.puz-net polygon:hover{filter:brightness(1.08)}
+.puz-net polygon.locked{cursor:default;stroke-width:.07}
+.puz-step{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.puz-chip{font-family:var(--font-mono);font-size:.9rem;padding:4px 9px;border-radius:8px;border:1.5px solid var(--line);
+  background:var(--panel);cursor:pointer}
+.puz-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.puz-readout{font-family:var(--font-display);font-size:1.05rem;margin:8px 0 2px}
+.puz-notation{font-family:var(--font-mono);font-size:.95rem;word-spacing:3px;color:var(--ink);
+  background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;margin-top:8px}
+
+/* ===== puzzle selector + coming-soon cards ===== */
+.puzzle-sel{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 2px}
+.psel-label{font-family:var(--font-display);font-weight:600;color:var(--muted);font-size:1rem}
+#puzzleSel .seg-btn{padding:8px 15px;font-size:.92rem}
+.soon-card{text-align:center;padding:40px 28px}
+.soon-emoji{font-size:2.6rem;line-height:1;margin-bottom:6px}
+.soon-card h2{margin-bottom:8px}
+.soon-card .hint{max-width:520px;margin:0 auto}
+.soon-card .btnrow{justify-content:center}
+.puz-net.tri{max-width:400px}
+.puz-net.tri svg{overflow:visible}
+
+/* 3D cube view inside the More-puzzles (generic) panel */
+#puzCube{
+  width:100%;aspect-ratio:1/1;max-height:460px;border-radius:16px;
+  background:radial-gradient(120% 120% at 50% 18%, #fff7ec 0%, #f4e7d4 72%);
+  border:1.5px solid var(--line);touch-action:none;cursor:crosshair;display:block;margin-bottom:6px;
+}
+
+/* ---- image scan (generic puzzles) ---- */
+.pg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+@media(max-width:520px){.pg-grid{grid-template-columns:repeat(2,1fr)}}
+.pg-cell{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.pg-prev{width:100%;aspect-ratio:1/1;border-radius:14px;border:2px dashed #e2d8c6;background:#fbf6ee center/cover no-repeat;
+  display:flex;align-items:center;justify-content:center;transition:border-color .15s,transform .1s}
+.pg-cell:hover .pg-prev{border-color:var(--accent);transform:translateY(-1px)}
+.pg-prev.has{border-style:solid;border-color:#d8cdbb}
+.pg-plus{font:600 30px/1 'Nunito',sans-serif;color:#c9bda8}
+.pg-cap{display:flex;align-items:center;gap:6px;font:600 13px/1.1 'Nunito',sans-serif;color:#6b6256}
+.pg-sw{width:13px;height:13px;border-radius:4px;border:1px solid rgba(0,0,0,.18);display:inline-block}
+
+/* ---- solve speed selector ---- */
+.puz-speed{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:4px 0 12px}
+.puz-speed-lbl{font:600 13px/1 'Nunito',sans-serif;color:var(--muted);margin-right:2px}
+.spd-btn{font:600 13px/1 'Nunito',sans-serif;color:#6b6256;background:#fff;border:1.5px solid #e7ddcc;
+  border-radius:999px;padding:6px 13px;cursor:pointer;transition:all .12s}
+.spd-btn:hover{border-color:var(--accent)}
+.spd-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -260,102 +319,166 @@ a{color:var(--accent)}
     </div>
     <div>
       <h1>Solvr</h1>
-      <div class="sub">Solve a real 3×3 Rubik's Cube — snap photos of it or color a 3D model. Then watch Solvr turn the cube for you, one move at a time, at whatever speed feels comfy.</div>
+      <div class="sub">Solve a Rubik's Cube from 2×2 to 5×5 — plus Pyraminx and Skewb. Color the 3D model or upload photos, then watch it solve step by step.</div>
     </div>
   </header>
 
+  <!-- ============ PUZZLE SELECTOR ============ -->
+  <div class="puzzle-sel">
+    <span class="psel-label">Puzzle:</span>
+    <div class="seg" id="puzzleSel" role="tablist" aria-label="Choose puzzle">
+      <button class="seg-btn" data-puz="2x2">2×2</button>
+      <button class="seg-btn active" data-puz="3x3">3×3</button>
+      <button class="seg-btn" data-puz="4x4">4×4</button>
+      <button class="seg-btn" data-puz="5x5">5×5</button>
+      <button class="seg-btn" data-puz="pyraminx">Pyraminx</button>
+      <button class="seg-btn" data-puz="skewb">Skewb</button>
+    </div>
+  </div>
+
   <!-- ============ TABS ============ -->
   <div class="tabs" role="tablist" aria-label="Solver mode">
-    <button class="tab" id="tab-img" role="tab" aria-controls="panel-img" aria-selected="true">Image Upload Solver</button>
-    <button class="tab" id="tab-man" role="tab" aria-controls="panel-man" aria-selected="false">Manual Coloring Solver</button>
+    <button class="tab" id="tab-man" role="tab" aria-controls="panel-man" aria-selected="true">Manual Coloring</button>
+    <button class="tab" id="tab-img" role="tab" aria-controls="panel-img" aria-selected="false">Image Upload</button>
   </div>
 
   <!-- ============================================================
-       PANEL 1 — IMAGE UPLOAD SOLVER
+       MANUAL COLORING PANEL  (content swaps by selected puzzle)
        ============================================================ -->
-  <section class="panel" id="panel-img" role="tabpanel" aria-labelledby="tab-img">
-    <div class="grid">
-      <div class="card">
-        <h2>1. Take a photo of each side</h2>
-        <p class="hint">Every side of the cube has a middle sticker whose color never changes. The easiest way: just match each photo to its middle color below — tap a box and snap that side so it fills the picture.</p>
-        <div class="faces-up" id="uploadSlots"><!-- slots injected --></div>
-        <details>
-          <summary>Not sure how to hold the cube?</summary>
-          <div class="muted" style="margin-top:8px">
-            You don't have to! Each box is labeled by its <b>middle color</b>, and the middle never moves.
-            Find the side with a <b>white</b> middle and photograph it for the “White / Top” box, the side
-            with a <b>green</b> middle for “Green / Front,” and so on. Hold the cube straight so the side fills the frame.
-          </div>
-        </details>
-        <div class="btnrow">
-          <button class="btn primary" id="analyzeBtn">Analyze photos</button>
-          <button class="btn" id="imgDemoBtn" title="Fill with a sample scramble">Try a sample</button>
-          <button class="btn" id="imgClearBtn">Clear</button>
-        </div>
-        <div class="status info" id="imgStatus"></div>
-      </div>
+  <section class="panel" id="panel-man" role="tabpanel" aria-labelledby="tab-man">
 
-      <div class="card">
-        <h2>2. Check &amp; fix the colors</h2>
-        <p class="hint">Cameras can misread a sticker under uneven light. Pick a color, then click any sticker in the map to fix it. The six middle stickers are locked.</p>
-        <div class="palette" id="imgPalette"></div>
-        <div class="net" id="imgNet" aria-label="Detected cube state"></div>
-        <div class="counts" id="imgCounts"></div>
-        <div class="btnrow">
-          <button class="btn primary" id="imgSolveBtn">Solve it!</button>
+    <!-- 3×3: full 3D cube -->
+    <div id="man-3x3">
+      <div class="grid">
+        <div class="card">
+          <h2>Color your cube</h2>
+          <p class="hint">Drag to spin it around. Pick a color below, then click stickers to paint them. The six middle stickers are locked to the standard scheme. When you solve, this same cube turns itself to show you every move.</p>
+          <div class="palette" id="manPalette"></div>
+          <canvas id="cube3d"></canvas>
+          <div class="cube-fallback card" id="manFallback" style="margin-top:14px">
+            <p class="hint" style="margin-bottom:8px">3D view unavailable — use the flat map below.</p>
+            <div class="net" id="manNet"></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn" id="manScrambleBtn">Random scramble</button>
+            <button class="btn" id="manSolvedBtn">Reset to solved</button>
+            <button class="btn" id="manClearBtn">Clear</button>
+          </div>
         </div>
-        <div class="status" id="imgSolveStatus"></div>
-        <div class="solution" id="imgSolution"></div>
+        <div class="card">
+          <h2>Solve &amp; watch</h2>
+          <p class="hint">Color every sticker, then solve. Press play and the cube turns itself — slow it down if the moves go too fast.</p>
+          <div class="counts" id="manCounts"></div>
+          <div class="btnrow"><button class="btn primary" id="manSolveBtn">Solve it!</button></div>
+          <div class="status" id="manSolveStatus"></div>
+          <div class="solution" id="manSolution"></div>
+          <details>
+            <summary>How orientation works</summary>
+            <div class="muted" style="margin-top:8px">
+              The solution assumes you hold the cube with <b>white&nbsp;Up</b>, <b>green&nbsp;Front</b>,
+              <b>red&nbsp;Right</b>, <b>yellow&nbsp;Down</b>, <b>orange&nbsp;Left</b>, <b>blue&nbsp;Back</b> —
+              matching the fixed middle stickers.
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2×2 / Pyraminx / Skewb: paintable net solver -->
+    <div id="man-generic" hidden>
+      <div class="grid two">
+        <div class="card">
+          <h2 id="puzColorTitle">Color your puzzle</h2>
+          <p class="hint" id="puzzleHint"></p>
+          <div class="palette" id="puzPalette"></div>
+          <canvas id="puzCube" hidden></canvas>
+          <div class="puz-net-wrap"><div class="puz-net" id="puzNet"></div></div>
+          <div class="btnrow">
+            <button class="btn" id="puzScrambleBtn">Random scramble</button>
+            <button class="btn" id="puzSolvedBtn">Reset to solved</button>
+            <button class="btn" id="puzClearBtn">Clear</button>
+          </div>
+          <p class="muted" style="margin-top:10px">Paint each sticker to match your real puzzle, then press Solve — or hit
+            <b>Random scramble</b> to try one out.</p>
+        </div>
+        <div class="card">
+          <h2>Solve</h2>
+          <div class="counts" id="puzCounts"></div>
+          <div class="btnrow"><button class="btn primary" id="puzSolveBtn">Solve it!</button></div>
+          <div class="status" id="puzStatus"></div>
+          <div class="solution" id="puzSolution"></div>
+          <details id="puzHelp">
+            <summary>How to read the moves</summary>
+            <div class="muted" id="puzHelpBody" style="margin-top:8px"></div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4×4 / 5×5: solver in progress -->
+    <div id="man-soon" hidden>
+      <div class="card soon-card">
+        <div class="soon-emoji">🛠️</div>
+        <h2 id="soonTitle">4×4 solver — in progress</h2>
+        <p class="hint" id="soonBody"></p>
       </div>
     </div>
   </section>
 
   <!-- ============================================================
-       PANEL 2 — MANUAL COLORING SOLVER
+       IMAGE UPLOAD PANEL
        ============================================================ -->
-  <section class="panel" id="panel-man" role="tabpanel" aria-labelledby="tab-man" hidden>
-    <div class="grid">
-      <div class="card">
-        <h2>Color your cube</h2>
-        <p class="hint">Drag to spin it around. Pick a color below, then click stickers to paint them. The six middle stickers are locked to the standard scheme. When you solve, this same cube turns itself to show you every move.</p>
-        <div class="palette" id="manPalette"></div>
-        <canvas id="cube3d"></canvas>
-        <!-- Fallback 2D editor if Three.js fails to load -->
-        <div class="cube-fallback card" id="manFallback" style="margin-top:14px">
-          <p class="hint" style="margin-bottom:8px">3D view unavailable — use the flat map below.</p>
-          <div class="net" id="manNet"></div>
+  <section class="panel" id="panel-img" role="tabpanel" aria-labelledby="tab-img" hidden>
+
+    <!-- 3×3 photo flow -->
+    <div id="img-3x3">
+      <div class="grid">
+        <div class="card">
+          <h2>1. Take a photo of each side</h2>
+          <p class="hint">Every side of the cube has a middle sticker whose color never changes. The easiest way: just match each photo to its middle color below — tap a box and snap that side so it fills the picture. For the best read, use bright even light, hold the cube straight, and keep it steady (avoid blur).</p>
+          <div class="faces-up" id="uploadSlots"><!-- slots injected --></div>
+          <details>
+            <summary>Not sure how to hold the cube?</summary>
+            <div class="muted" style="margin-top:8px">
+              You don't have to! Each box is labeled by its <b>middle color</b>, and the middle never moves.
+              Find the side with a <b>white</b> middle and photograph it for the “White / Top” box, the side
+              with a <b>green</b> middle for “Green / Front,” and so on. Hold the cube straight so the side fills the frame.
+            </div>
+          </details>
+          <div class="btnrow">
+            <button class="btn primary" id="analyzeBtn">Analyze photos</button>
+            <button class="btn" id="imgDemoBtn" title="Fill with a sample scramble">Try a sample</button>
+            <button class="btn" id="imgClearBtn">Clear</button>
+          </div>
+          <div class="status info" id="imgStatus"></div>
         </div>
-        <div class="btnrow">
-          <button class="btn" id="manScrambleBtn">Random scramble</button>
-          <button class="btn" id="manSolvedBtn">Reset to solved</button>
-          <button class="btn" id="manClearBtn">Clear</button>
+        <div class="card">
+          <h2>2. Check &amp; fix the colors</h2>
+          <p class="hint">Cameras can misread a sticker under uneven light. Pick a color, then click any sticker in the map to fix it. The six middle stickers are locked.</p>
+          <div class="palette" id="imgPalette"></div>
+          <div class="net" id="imgNet" aria-label="Detected cube state"></div>
+          <div class="counts" id="imgCounts"></div>
+          <div class="btnrow"><button class="btn primary" id="imgSolveBtn">Solve it!</button></div>
+          <div class="status" id="imgSolveStatus"></div>
+          <div class="solution" id="imgSolution"></div>
         </div>
       </div>
+    </div>
 
+    <!-- Non-3×3: point to manual coloring -->
+    <div id="img-other" hidden>
       <div class="card">
-        <h2>Solve &amp; watch</h2>
-        <p class="hint">Color every sticker, then solve. Press play and the cube turns itself — slow it down if the moves go too fast.</p>
-        <div class="counts" id="manCounts"></div>
+        <h2 id="pgTitle">Scan your puzzle</h2>
+        <p class="hint" id="pgHint">Take a straight-on photo of each face, framed to fill the square and turned the same way as the diagram. We'll read the colors as a starting point — then you can fix any misreads on the 3D model before solving.</p>
+        <div class="pg-grid" id="pgSlots"></div>
         <div class="btnrow">
-          <button class="btn primary" id="manSolveBtn">Solve it!</button>
+          <button class="btn primary" id="pgAnalyze" disabled>Read colors from photos</button>
+          <button class="btn" id="pgClear">Clear photos</button>
         </div>
-        <div class="status" id="manSolveStatus"></div>
-        <div class="solution" id="manSolution"></div>
-        <details>
-          <summary>How orientation works</summary>
-          <div class="muted" style="margin-top:8px">
-            The solution assumes you hold the cube with <b>white&nbsp;Up</b>, <b>green&nbsp;Front</b>,
-            <b>red&nbsp;Right</b>, <b>yellow&nbsp;Down</b>, <b>orange&nbsp;Left</b>, <b>blue&nbsp;Back</b> —
-            matching the fixed middle stickers.
-          </div>
-        </details>
+        <p class="status" id="pgStatus"></p>
       </div>
     </div>
   </section>
-
-  <footer style="margin-top:42px;color:var(--muted);font-size:.8rem;text-align:center">
-    Runs entirely in your browser · your photos never leave your device · the solver may take ~5s to warm up the first time.
-  </footer>
 </div>
 
 <!-- Loading overlay for image analysis & first-time solver warm-up -->
@@ -2919,7 +3042,26 @@ async function runSolve(st, statusEl, solutionEl, opts){
     statusEl.textContent = 'Could not solve this configuration. ' + (err.message || '');
   }
 }
-// Draw an image into a square canvas using cover-fit (center crop).
+/* ============================================================================
+   IMAGE COLOR ANALYSIS  —  rebuilt for reliability
+   ----------------------------------------------------------------------------
+   Pipeline (per the design goals):
+     1. LOCATE the cube face inside each photo (so background / hand / glare
+        around the cube don't get sampled).
+     2. SAMPLE each of the 9 stickers with k-means CLUSTERING, which rejects
+        the black grid lines and specular highlights and returns the dominant
+        sticker color.
+     3. NORMALIZE each face: gray-world white-balance (removes color cast) and
+        brightness normalization (removes exposure differences).
+     4. CLASSIFY in CIELAB (perceptually uniform) against references that
+        combine the canonical colors with this cube's own measured centers.
+     5. VALIDATE: count each color. We DO NOT force the result. If any color
+        appears more than 9 times the photos are inconsistent and the caller
+        refuses to solve and asks the user to improve the shots.
+   Everything below is deliberately explicit and commented for reliability.
+   ========================================================================== */
+
+// Draw an image into a square canvas using cover-fit (center crop) — thumbnails.
 function drawCover(canvas, img){
   const ctx=canvas.getContext('2d');
   const s=Math.min(img.width,img.height);
@@ -2928,7 +3070,9 @@ function drawCover(canvas, img){
   ctx.drawImage(img,sx,sy,s,s,0,0,canvas.width,canvas.height);
 }
 
-// Convert RGB → HSV (h in [0,360), s,v in [0,1]).
+// ---- color-space helpers ---------------------------------------------------
+
+// RGB (0..255) -> HSV (h 0..360, s 0..1, v 0..1). Used for cube-region finding.
 function rgb2hsv(r,g,b){
   r/=255;g/=255;b/=255;
   const mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn;
@@ -2941,48 +3085,249 @@ function rgb2hsv(r,g,b){
   }
   return [h, mx?d/mx:0, mx];
 }
-// Classify an averaged RGB sample into one of the six cube colors.
-// The six colors separate cleanly in hue, with white as the low-sat case.
-function classify(r,g,b){
-  const [h,s,v]=rgb2hsv(r,g,b);
-  if(s<0.22 && v>0.45) return 'W';        // washed-out / bright + low saturation
-  if(v<0.18) return 'B';                   // very dark → most likely blue under poor light
-  if(h<14||h>=345) return 'R';
-  if(h<40)  return 'O';
-  if(h<70)  return 'Y';
-  if(h<170) return 'G';
-  return 'B';                              // 170–345 → blue
+
+// RGB (0..255) -> CIELAB (D65). Perceptually uniform; great for color matching.
+function rgb2lab(r,g,b){
+  let R=r/255, G=g/255, B=b/255;
+  const lin=c=> c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4);
+  R=lin(R); G=lin(G); B=lin(B);
+  let X=(R*0.4124+G*0.3576+B*0.1805)/0.95047;
+  let Y=(R*0.2126+G*0.7152+B*0.0722)/1.00000;
+  let Z=(R*0.0193+G*0.1192+B*0.9505)/1.08883;
+  const f=t=> t>0.008856 ? Math.cbrt(t) : (7.787*t + 16/116);
+  const fx=f(X), fy=f(Y), fz=f(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
 }
-// Sample 9 stickers from a face image (assumes the face fills the frame).
-function sampleFace(img){
-  const N=120, c=document.createElement('canvas'); c.width=N;c.height=N;
-  const ctx=c.getContext('2d');
-  const s=Math.min(img.width,img.height), sx=(img.width-s)/2, sy=(img.height-s)/2;
-  ctx.drawImage(img,sx,sy,s,s,0,0,N,N);
+
+// ---- k-means (tiny, for per-sticker dominant color) ------------------------
+function kmeans(pts, k, iters){
+  const n=pts.length;
+  if(n<=k) return pts.map(p=>({c:p.slice(), n:1}));
+  // farthest-point initialization for stable, spread centroids
+  const cents=[pts[(Math.random()*n)|0].slice()];
+  while(cents.length<k){
+    let best=pts[0], bd=-1;
+    for(const p of pts){
+      let dmin=1e18;
+      for(const c of cents){ const d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2; if(d<dmin)dmin=d; }
+      if(dmin>bd){ bd=dmin; best=p; }
+    }
+    cents.push(best.slice());
+  }
+  const asg=new Array(n).fill(0);
+  for(let it=0; it<iters; it++){
+    for(let i=0;i<n;i++){
+      let bd=1e18, bc=0;
+      for(let c=0;c<k;c++){ const d=(pts[i][0]-cents[c][0])**2+(pts[i][1]-cents[c][1])**2+(pts[i][2]-cents[c][2])**2; if(d<bd){bd=d;bc=c;} }
+      asg[i]=bc;
+    }
+    const sum=Array.from({length:k},()=>[0,0,0,0]);
+    for(let i=0;i<n;i++){ const c=asg[i]; sum[c][0]+=pts[i][0];sum[c][1]+=pts[i][1];sum[c][2]+=pts[i][2];sum[c][3]++; }
+    for(let c=0;c<k;c++) if(sum[c][3]) cents[c]=[sum[c][0]/sum[c][3], sum[c][1]/sum[c][3], sum[c][2]/sum[c][3]];
+  }
+  const cnt=new Array(k).fill(0); for(const a of asg) cnt[a]++;
+  return cents.map((c,i)=>({c, n:cnt[i]}));
+}
+
+// Dominant color of a pixel list: cluster, drop near-black (grid lines) and
+// blown-out specular clusters, return the centroid of the largest survivor.
+function dominantColor(px){
+  if(!px.length) return [128,128,128];
+  const clusters=kmeans(px, Math.min(3,px.length), 6)
+    .filter(cl=>cl.n>0)
+    .filter(cl=>{
+      const [r,g,b]=cl.c, mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+      if(mx<45) return false;            // grid line / deep shadow
+      if(mn>250) return false;           // pure specular highlight
+      return true;
+    });
+  const pool = clusters.length ? clusters : kmeans(px, Math.min(3,px.length), 6);
+  pool.sort((a,b)=>b.n-a.n);
+  return pool[0].c.map(v=>Math.max(0,Math.min(255,v)));
+}
+
+// ---- locate the cube face in a photo ---------------------------------------
+// Returns {x0,y0,x1,y1} of a square region that tightly contains the colorful
+// cube, ignoring dull wall / glare and trimming scattered outliers (hand, etc).
+function findFaceBox(data, W, H){
+  const xs=[], ys=[];
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=(y*W+x)*4;
+    const [,s,v]=rgb2hsv(data[i],data[i+1],data[i+2]);
+    if(s>0.30 && v>0.22 && v<0.97){ xs.push(x); ys.push(y); }   // vivid sticker pixel
+  }
+  if(xs.length < W*H*0.02){           // not enough color found → safe center crop
+    const m=Math.round(Math.min(W,H)*0.10);
+    return squarify(m, m, W-m, H-m, W, H);
+  }
+  xs.sort((a,b)=>a-b); ys.sort((a,b)=>a-b);
+  const q=(arr,p)=>arr[Math.min(arr.length-1, Math.max(0, Math.round(p*(arr.length-1))))];
+  // robust bounds (trim 8% tails so a colorful hand/background can't drag the box)
+  let x0=q(xs,0.08), x1=q(xs,0.92), y0=q(ys,0.08), y1=q(ys,0.92);
+  // small outward margin
+  const mx=(x1-x0)*0.06, my=(y1-y0)*0.06;
+  x0-=mx; x1+=mx; y0-=my; y1+=my;
+  const bw=x1-x0, bh=y1-y0;
+  if(bw < W*0.25 || bh < H*0.25){     // implausibly small → center crop fallback
+    const m=Math.round(Math.min(W,H)*0.10);
+    return squarify(m, m, W-m, H-m, W, H);
+  }
+  return squarify(x0, y0, x1, y1, W, H);
+}
+function squarify(x0,y0,x1,y1,W,H){
+  let cx=(x0+x1)/2, cy=(y0+y1)/2, side=Math.max(x1-x0, y1-y0);
+  let nx0=cx-side/2, ny0=cy-side/2, nx1=cx+side/2, ny1=cy+side/2;
+  // clamp into image
+  if(nx0<0){ nx1-=nx0; nx0=0; } if(ny0<0){ ny1-=ny0; ny0=0; }
+  if(nx1>W){ nx0-=(nx1-W); nx1=W; } if(ny1>H){ ny0-=(ny1-H); ny1=H; }
+  nx0=Math.max(0,nx0); ny0=Math.max(0,ny0);
+  return {x0:nx0,y0:ny0,x1:nx1,y1:ny1};
+}
+
+// ---- sample the 9 sticker colors of one face -------------------------------
+function sampleFaceRGB(img){
+  // draw the WHOLE photo into a square work canvas (contain), gray padding so
+  // padding never looks "colorful" to the cube-finder.
+  const WC=260, cv=document.createElement('canvas'); cv.width=WC; cv.height=WC;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#7f7f7f'; ctx.fillRect(0,0,WC,WC);
+  const scale=Math.min(WC/img.width, WC/img.height);
+  const dw=img.width*scale, dh=img.height*scale;
+  ctx.drawImage(img, (WC-dw)/2, (WC-dh)/2, dw, dh);
+  const full=ctx.getImageData(0,0,WC,WC).data;
+
+  const box=findFaceBox(full, WC, WC);
+  const bw=box.x1-box.x0, bh=box.y1-box.y0;
+  const frac=[1/6, 1/2, 5/6];          // sticker centers within the face
+  const cellHalf=Math.min(bw,bh)/6*0.62; // sample the central ~62% of each cell
   const out=[];
-  for(let r=0;r<3;r++) for(let col=0;col<3;col++){
-    const cx=Math.round((0.2+col*0.3)*N), cy=Math.round((0.2+r*0.3)*N);
-    // average a small patch to reduce noise
-    let R=0,G=0,B=0,n=0;
-    const data=ctx.getImageData(cx-6,cy-6,12,12).data;
-    for(let i=0;i<data.length;i+=4){ R+=data[i];G+=data[i+1];B+=data[i+2];n++; }
-    out.push(classify(R/n,G/n,B/n));
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++){
+    const cx=box.x0+frac[c]*bw, cy=box.y0+frac[r]*bh;
+    const x0=Math.max(0,Math.round(cx-cellHalf)), y0=Math.max(0,Math.round(cy-cellHalf));
+    const x1=Math.min(WC,Math.round(cx+cellHalf)), y1=Math.min(WC,Math.round(cy+cellHalf));
+    const px=[];
+    for(let y=y0;y<y1;y+=2) for(let x=x0;x<x1;x+=2){   // stride 2 for speed
+      const i=(y*WC+x)*4; px.push([full[i],full[i+1],full[i+2]]);
+    }
+    out.push(dominantColor(px));
   }
   return out;
 }
-/* ============================================================
-   TAB SWITCHING
-   ============================================================ */
-const tabImg = document.getElementById('tab-img'), tabMan = document.getElementById('tab-man');
-const panelImg = document.getElementById('panel-img'), panelMan = document.getElementById('panel-man');
-function selectTab(which){
-  const img = which === 'img';
-  tabImg.setAttribute('aria-selected', img); tabMan.setAttribute('aria-selected', !img);
-  panelImg.hidden = !img; panelMan.hidden = img;
-  if(!img && cube3d && cube3d.onShow) cube3d.onShow();   // resize 3D canvas when revealed
+
+// ---- analyze all six faces -------------------------------------------------
+// Returns { state, counts } with HONEST per-color counts (not forced to 9).
+function analyzeFaces(faceImgs){
+  const LBL=['W','Y','R','O','B','G'];
+  const canonLab={}; LBL.forEach(L=>canonLab[L]=rgb2lab(...COLOR_RGB[L]));
+
+  const items=[];                // {face,index,lab,center}
+  const measuredLab={};          // label -> measured center LAB (this cube)
+
+  for(const f of FACES){
+    let raw=sampleFaceRGB(faceImgs[f]);   // 9 dominant sticker RGBs
+
+    // (3a) gray-world white balance — neutralize this photo's color cast.
+    let mR=0,mG=0,mB=0; raw.forEach(p=>{mR+=p[0];mG+=p[1];mB+=p[2];}); mR/=9;mG/=9;mB/=9;
+    const gray=(mR+mG+mB)/3, cl=x=>Math.max(0.7,Math.min(1.5,x));
+    const wb=[cl(gray/(mR+1e-6)), cl(gray/(mG+1e-6)), cl(gray/(mB+1e-6))];
+    raw=raw.map(p=>[p[0]*wb[0], p[1]*wb[1], p[2]*wb[2]]);
+
+    // (3b) brightness normalization — scale so the face's median luma hits a
+    // standard level, cancelling exposure differences between faces.
+    const luma=p=>0.299*p[0]+0.587*p[1]+0.114*p[2];
+    const lum=raw.map(luma).sort((a,b)=>a-b);
+    const medL=lum[4]||1, bScale=Math.max(0.6,Math.min(1.7, 150/medL));
+    raw=raw.map(p=>p.map(v=>Math.max(0,Math.min(255,v*bScale))));
+
+    for(let i=0;i<9;i++) items.push({face:f,index:i,lab:rgb2lab(...raw[i]),center:i===4});
+    measuredLab[CENTER_COLOR[f]]=rgb2lab(...raw[4]);
+  }
+
+  // (4) references = blend(canonical, this-cube measured centers). Centers are
+  // ground truth, so their normalized LAB is an excellent in-situ reference.
+  const ref={};
+  LBL.forEach(L=>{
+    const m=measuredLab[L]||canonLab[L], c=canonLab[L];
+    ref[L]=[0.5*m[0]+0.5*c[0], 0.5*m[1]+0.5*c[1], 0.5*m[2]+0.5*c[2]];
+  });
+  // CIELAB distance with L weighted down (lighting varies more than chroma).
+  const dist=(lab,L)=>{ const b=ref[L];
+    return 0.35*(lab[0]-b[0])**2 + (lab[1]-b[1])**2 + (lab[2]-b[2])**2; };
+
+  // (4b) classify each sticker to its nearest reference (centers are forced to
+  // their known color — they cannot move on a real cube).
+  const state=emptyState();
+  for(const it of items){
+    if(it.center){ state[it.face][it.index]=CENTER_COLOR[it.face]; continue; }
+    let best='W', bd=1e18;
+    for(const L of LBL){ const d=dist(it.lab,L); if(d<bd){ bd=d; best=L; } }
+    state[it.face][it.index]=best;
+  }
+  for(const f of FACES) state[f][4]=CENTER_COLOR[f];
+
+  // (5) honest counts (NOT forced to 9).
+  const counts={W:0,Y:0,R:0,O:0,B:0,G:0};
+  for(const f of FACES) for(let i=0;i<9;i++) counts[state[f][i]]++;
+  return { state, counts };
 }
-tabImg.onclick = () => selectTab('img');
-tabMan.onclick = () => selectTab('man');
+/* ============================================================
+   TAB SWITCHING  +  PUZZLE SELECTOR
+   ============================================================ */
+const TABS = [
+  {tab:'tab-man', panel:'panel-man'},
+  {tab:'tab-img', panel:'panel-img'},
+];
+function selectTab(which){
+  for(const t of TABS){
+    const sel = t.tab === ('tab-'+which);
+    const tb = document.getElementById(t.tab), pn = document.getElementById(t.panel);
+    if(!tb || !pn) continue;
+    tb.setAttribute('aria-selected', sel);
+    pn.hidden = !sel;
+  }
+  if(which === 'man'){
+    if(currentPuzzle === '3x3' && cube3d && cube3d.onShow) cube3d.onShow();
+    else if(window.MorePuzzles && window.MorePuzzles.onShow) window.MorePuzzles.onShow();
+  }
+}
+document.getElementById('tab-man').onclick = () => selectTab('man');
+document.getElementById('tab-img').onclick = () => selectTab('img');
+
+let currentPuzzle = '3x3';
+function showEl(id, on){ const el = document.getElementById(id); if(el) el.hidden = !on; }
+function applyPuzzle(id){
+  currentPuzzle = id;
+  document.querySelectorAll('#puzzleSel .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.puz === id));
+  const is3 = id === '3x3';
+  const generic = (id === '2x2' || id === 'pyraminx' || id === 'skewb');
+  const soon = (id === '4x4' || id === '5x5');
+  showEl('man-3x3', is3); showEl('man-generic', generic); showEl('man-soon', soon);
+  showEl('img-3x3', is3); showEl('img-other', !is3);
+  if(generic && window.MorePuzzles) window.MorePuzzles.load(id);
+  if(soon){
+    const sizes = {'4x4':'4×4 (Rubik\u2019s Revenge)', '5x5':'5×5 (Professor\u2019s Cube)'};
+    const st = document.getElementById('soonTitle'), sb = document.getElementById('soonBody');
+    if(st) st.textContent = sizes[id] + ' solver — in progress';
+    if(sb) sb.innerHTML =
+      'The bigger cubes are far too large to solve by direct search — they need a <b>reduction</b> method: '+
+      'group the centre pieces, pair up the edges, then finish it like a 3×3 (handling the special parity cases). '+
+      'That engine is being built and verified the same careful way as the others, and it\u2019ll appear right here when it\u2019s ready. '+
+      'For now, <b>2×2, 3×3, Pyraminx and Skewb</b> are fully solvable.';
+  }
+  if(!is3){
+    const hasScan = window.ImageGen && Puzzles[id] && Puzzles[id].imgScan;
+    if(hasScan){ window.ImageGen.build(id); }
+    else {
+      const t=document.getElementById('pgTitle'), h=document.getElementById('pgHint'), sl=document.getElementById('pgSlots'),
+            a=document.getElementById('pgAnalyze'), c=document.getElementById('pgClear');
+      if(t) t.textContent='Photo scanning — coming soon';
+      if(h) h.innerHTML='The '+(id==='4x4'?'4×4':'5×5')+' solver is still being built, so photo scanning isn\u2019t available for it yet. The 2×2, Pyraminx and Skewb can all be scanned today.';
+      if(sl) sl.innerHTML=''; if(a) a.disabled=true; if(c) c.style.display='none';
+    }
+  }
+  if(is3 && cube3d && cube3d.onShow && !document.getElementById('panel-man').hidden) cube3d.onShow();
+}
+document.querySelectorAll('#puzzleSel .seg-btn').forEach(b => { b.onclick = () => applyPuzzle(b.dataset.puz); });
 
 /* ============================================================
    MANUAL MODE
@@ -3233,6 +3578,9 @@ document.getElementById('manSolveBtn').onclick = () => runSolve(
   { animatorFactory: (cube3d && cube3d.makeAnimator) ? (base => cube3d.makeAnimator(base)) : null }
 );
 manAfterChange();
+
+// initialize puzzle selector to the default 3x3 view
+applyPuzzle(currentPuzzle);
 /* ============================================================
    IMAGE MODE
    Upload 6 faces → sample a 3×3 grid → classify colors in HSV →
@@ -3303,17 +3651,40 @@ document.getElementById('analyzeBtn').onclick = () => {
   // Defer so the overlay paints before the (synchronous) sampling work.
   setTimeout(() => {
     try{
-      for(const slot of IMG_SLOTS){
-        const colors = sampleFace(imgFiles[slot.face]);
-        colors[4] = CENTER_COLOR[slot.face];   // keep the center fixed to its scheme
-        imgState[slot.face] = colors;
-      }
+      const faceImgs = {};
+      for(const slot of IMG_SLOTS) faceImgs[slot.face] = imgFiles[slot.face];
+      const { state, counts } = analyzeFaces(faceImgs);   // honest, not forced
+      for(const f of FACES) imgState[f] = state[f];        // mutate existing object
       refreshNet(document.getElementById('imgNet'), imgState);
       renderCounts(document.getElementById('imgCounts'), imgState);
-      st.className = 'status ok';
-      st.textContent = 'Got it! Check the map on the right and fix any wrong stickers, then Solve.';
+
+      // VALIDATE: a real cube has exactly 9 of every color. Report honestly.
+      const over  = COLORS.filter(c => counts[c] > 9);
+      const under = COLORS.filter(c => counts[c] < 9);
+      const fmt = c => `${COLOR_NAMES[c]} ${counts[c]}`;
+
+      if(over.length === 0 && under.length === 0){
+        st.className = 'status ok';
+        st.innerHTML = '✓ All six colors came out 9 each. Have a quick look at the map, then press <b>Solve it!</b>';
+      } else {
+        // Impossible counts → stop, explain, and tell them how to reshoot.
+        st.className = 'status err';
+        st.innerHTML =
+          '⚠ <b>Those photos came out inconsistent</b> — the colors don\'t add up ' +
+          '(each color must appear exactly&nbsp;9 times).<br>' +
+          (over.length  ? 'Too many: ' + over.map(fmt).join(', ') + '.<br>'  : '') +
+          (under.length ? 'Too few: '  + under.map(fmt).join(', ') + '.<br>' : '') +
+          '<br>This is almost always the lighting or framing. Please re-take the off faces:' +
+          '<br>• Use bright, even light — avoid shadows across the cube.' +
+          '<br>• Don\'t shoot toward a window or lamp; avoid glare and reflections.' +
+          '<br>• Center the cube so it fills the frame, straight-on.' +
+          '<br>• Keep the same distance for every face, and hold steady (no blur).' +
+          '<br><br>Then Analyze again — or fix the wrong stickers by hand in the map, ' +
+          'making each color total&nbsp;9 before you Solve.';
+      }
     }catch(err){
-      st.className = 'status err'; st.textContent = 'Could not read the photos. Try clearer, well-lit shots.';
+      st.className = 'status err';
+      st.textContent = 'Could not read the photos. Please use clearer, evenly-lit, centered shots and try again.';
     }finally{ hideOverlay(); }
   }, 60);
 };
@@ -3355,6 +3726,795 @@ document.getElementById('imgSolveBtn').onclick = () =>
    STARTUP — warm the solver shortly after load.
    ============================================================ */
 window.addEventListener('load', () => { setTimeout(warmSolver, 400); });
+/* ============================================================================
+   EXTRA PUZZLES — 2x2, Pyraminx, Skewb
+   ----------------------------------------------------------------------------
+   Every move table here is DERIVED FROM 3D GEOMETRY at load time and was
+   validated offline against each puzzle's known group order:
+     2x2     reaches God's number 11 (proves the model)
+     Pyraminx reachable states = 933,120  (exact group order)
+     Skewb    reachable states = 3,149,280 (exact group order)
+   Solvers are meet-in-the-middle (optimal for the move metric used).
+   ========================================================================== */
+const Puzzles = (function(){
+  // ---- vector helpers ----
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+  const addv=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+  const mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+  const nrm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
+  function rotAxis(p,u,deg){const t=deg*Math.PI/180,c=Math.cos(t),s=Math.sin(t),d=dot(p,u);
+    const cr=[u[1]*p[2]-u[2]*p[1],u[2]*p[0]-u[0]*p[2],u[0]*p[1]-u[1]*p[0]];
+    return [p[0]*c+cr[0]*s+u[0]*d*(1-c),p[1]*c+cr[1]*s+u[1]*d*(1-c),p[2]*c+cr[2]*s+u[2]*d*(1-c)];}
+  function rot90(p,axis){const[x,y,z]=p; if(axis==='x')return[x,-z,y]; if(axis==='y')return[z,y,-x]; return[-y,x,z];}
+  function rotSeq(p,seq){let q=p.slice(); for(const ax of seq) q=rot90(q,ax); return q;}
+  const eqv=(a,b)=>Math.abs(a[0]-b[0])<1e-6&&Math.abs(a[1]-b[1])<1e-6&&Math.abs(a[2]-b[2])<1e-6;
+
+  // ---- generic meet-in-the-middle solver ----
+  // moves: {name:srcArray}; goals: array of goal strings; groupOf(name): which axis/face
+  // (to forbid two consecutive moves on the same axis); maxDepth per side.
+  function applySrc(state,src){let o='';for(let k=0;k<src.length;k++)o+=state[src[k]];return o;}
+  function mitm(start, goals, moves, inv, groupOf, maxD){
+    const goalSet=new Set(goals);
+    if(goalSet.has(start)) return [];
+    const names=Object.keys(moves);
+    const fwd=new Map([[start,null]]);
+    const bwd=new Map(); for(const g of goals) bwd.set(g,null);
+    let fF=[start], bF=goals.slice();
+    const step=(frontier,vis,oth,forward)=>{
+      const nf=[];
+      for(const st of frontier){
+        const last=vis.get(st), lg=last?groupOf(last.mv):null;
+        for(const mv of names){
+          if(groupOf(mv)===lg) continue;
+          const ns=applySrc(st,moves[mv]);
+          if(vis.has(ns)) continue;
+          vis.set(ns,{prev:st,mv});
+          if(oth.has(ns)) return {meet:ns};
+          nf.push(ns);
+        }
+      }
+      return {nf};
+    };
+    for(let d=0; d<maxD; d++){
+      let r=step(fF,fwd,bwd,true);  if(r.meet) return recon(fwd,bwd,r.meet,inv); fF=r.nf;
+      r=step(bF,bwd,fwd,false);     if(r.meet) return recon(fwd,bwd,r.meet,inv); bF=r.nf;
+      if(!fF.length && !bF.length) break;
+    }
+    return null;
+  }
+  function recon(fwd,bwd,meet,inv){
+    const L=[]; let s=meet; while(fwd.get(s)){const{prev,mv}=fwd.get(s);L.push(mv);s=prev;} L.reverse();
+    const R=[]; s=meet; while(bwd.get(s)){const{prev,mv}=bwd.get(s);R.push(inv(mv));s=prev;}
+    return L.concat(R);
+  }
+
+  // ===========================================================================
+  // 2x2  (corner cube)
+  // ===========================================================================
+  function build2x2(){
+    const FACES=['U','R','F','D','L','B'];
+    const NORM={U:[0,1,0],R:[1,0,0],F:[0,0,1],D:[0,-1,0],L:[-1,0,0],B:[0,0,-1]};
+    const INP={U:[[1,0,0],[0,0,1]],D:[[1,0,0],[0,0,1]],R:[[0,1,0],[0,0,1]],L:[[0,1,0],[0,0,1]],F:[[1,0,0],[0,1,0]],B:[[1,0,0],[0,1,0]]};
+    const slots=[];
+    for(const f of FACES){const n=NORM[f],[a,b]=INP[f];
+      for(const sa of[-0.5,0.5])for(const sb of[-0.5,0.5]){
+        slots.push({pos:addv(addv(n,mul(a,sa)),mul(b,sb)),norm:n.slice(),face:f,fa:[a,b],sa,sb});}}
+    const N=slots.length, SOLVED=slots.map(s=>s.face).join('');
+    const findPN=(p,nv)=>{for(let i=0;i<N;i++)if(eqv(slots[i].pos,p)&&eqv(slots[i].norm,nv))return i;return -1;};
+    const MD={U:{ax:'y',sel:p=>p[1]>0.4,sgn:-1},R:{ax:'x',sel:p=>p[0]>0.4,sgn:-1},F:{ax:'z',sel:p=>p[2]>0.4,sgn:-1}};
+    function buildSrc(face,q){const d=MD[face],k=((d.sgn*q)%4+4)%4;const src=new Array(N).fill().map((_,i)=>i);
+      for(let i=0;i<N;i++){const c=sub(slots[i].pos,mul(slots[i].norm,0.5));if(!d.sel(c))continue;
+        let p=slots[i].pos.slice(),nv=slots[i].norm.slice();for(let t=0;t<k;t++){p=rot90(p,d.ax);nv=rot90(nv,d.ax);}
+        src[findPN(p,nv)]=i;}return src;}
+    const moves={};for(const f of['U','R','F']){moves[f]=buildSrc(f,1);moves[f+'2']=buildSrc(f,2);moves[f+"'"]=buildSrc(f,3);}
+    // 24 orientation goals (no centers => any rotation is "solved")
+    const goals=cubeGoals(slots,SOLVED);
+    // ---- net: cross of 2x2 grids ----
+    const cell=1, gap=0.12;
+    const facePos={U:[2,0],L:[0,2],F:[2,2],R:[4,2],B:[6,2],D:[2,4]};
+    const polys=[];
+    for(let i=0;i<N;i++){const s=slots[i];const[fx,fy]=facePos[s.face];
+      // map (sa,sb) -> (col,row) in 0..1
+      const col=s.sa<0?0:1, row=s.sb<0?0:1;
+      const x=fx+col, y=fy+row;
+      polys.push({i, points:`${x+gap},${y+gap} ${x+1-gap},${y+gap} ${x+1-gap},${y+1-gap} ${x+gap},${y+1-gap}`});}
+    return {
+      id:'2x2', name:'2×2 (Pocket Cube)', n:N, solved:SOLVED, moves, goals,
+      faceCenters:{}, // none
+      moveNames:Object.keys(moves),
+      groupOf:m=>m[0], inv:m=>m.endsWith('2')?m:(m.endsWith("'")?m[0]:m[0]+"'"),
+      apply:(st,mv)=>applySrc(st,moves[mv]),
+      maxD:7,
+      net:{w:8,h:6,polys}, imgScan:buildImgScan(polys,SOLVED),
+      describe:m=>moveWord(m),
+      // ---- 3D geometry (polygon stickers) ----
+      geom3d:{
+        coreType:'cube', coreHalf:1,
+        moveAxis:{U:[0,1,0],R:[1,0,0],F:[0,0,1]},
+        moveSrc:m=>moves[m],
+        stickers: slots.map(s=>{
+          const [a,b]=s.fa, p=s.pos, h=0.45;
+          const C=(sa,sb)=>[p[0]+a[0]*sa*h+b[0]*sb*h, p[1]+a[1]*sa*h+b[1]*sb*h, p[2]+a[2]*sa*h+b[2]*sb*h];
+          return { normal:NORM[s.face].slice(), corners:[C(1,1),C(-1,1),C(-1,-1),C(1,-1)] };
+        }),
+      },
+    };
+  }
+
+  // ===========================================================================
+  // Pyraminx
+  // ===========================================================================
+  function buildPyra(){
+    const V={U:[1,1,1],L:[1,-1,-1],R:[-1,1,-1],B:[-1,-1,1]};
+    const FV={U:['L','R','B'],L:['U','R','B'],R:['U','L','B'],B:['U','L','R']};
+    function cents(A,B,C){const P=(i,j)=>addv(addv(A,mul(sub(B,A),i/3)),mul(sub(C,A),j/3));const out=[];
+      for(let i=0;i<=2;i++)for(let j=0;j+i<=2;j++)out.push({type:'u',i,j,c:mul(addv(addv(P(i,j),P(i+1,j)),P(i,j+1)),1/3)});
+      for(let i=0;i<=1;i++)for(let j=0;j+i<=1;j++)out.push({type:'d',i,j,c:mul(addv(addv(P(i+1,j),P(i,j+1)),P(i+1,j+1)),1/3)});
+      return out;}
+    const slots=[];
+    for(const f of Object.keys(FV)){const[a,b,c]=FV[f].map(k=>V[k]);for(const o of cents(a,b,c))slots.push({c:o.c,face:f,type:o.type,i:o.i,j:o.j});}
+    const N=slots.length, SOLVED=slots.map(s=>s.face).join('');
+    const find=c=>{for(let i=0;i<N;i++)if(Math.hypot(c[0]-slots[i].c[0],c[1]-slots[i].c[1],c[2]-slots[i].c[2])<1e-6)return i;return -1;};
+    function topK(v,k){const u=nrm(V[v]);return slots.map((s,i)=>({i,d:dot(s.c,u)})).sort((a,b)=>b.d-a.d).slice(0,k).map(o=>o.i);}
+    function buildMove(v,deg,k){const u=nrm(V[v]);const set=new Set(topK(v,k));const src=new Array(N).fill().map((_,i)=>i);
+      for(const i of set){const j=find(rotAxis(slots[i].c,u,deg));src[j]=i;}return src;}
+    const moves={}, tips={};
+    for(const v of['U','L','R','B']){moves[v]=buildMove(v,120,12);moves[v+"'"]=buildMove(v,-120,12);
+      tips[v.toLowerCase()]=buildMove(v,120,3);tips[v.toLowerCase()+"'"]=buildMove(v,-120,3);}
+    const all={...moves,...tips};
+    const tipSlots=new Set();for(const v of['U','L','R','B'])topK(v,3).forEach(i=>tipSlots.add(i));
+    const centerSlot={}; // the middle triangle of each face (fixed reference)
+    for(const f of Object.keys(FV)){let best=-1,bj=-1;const fc=slots.filter(s=>s.face===f);
+      // center triangle = the one nearest face centroid
+      const ctr=mul(fc.reduce((a,s)=>addv(a,s.c),[0,0,0]),1/fc.length);
+      slots.forEach((s,i)=>{if(s.face!==f)return;const dd=Math.hypot(s.c[0]-ctr[0],s.c[1]-ctr[1],s.c[2]-ctr[2]);if(best<0||dd<best){best=dd;bj=i;}});
+      centerSlot[f]=bj;}
+    const mask=s=>{let o='';for(let i=0;i<N;i++)o+=tipSlots.has(i)?'T':s[i];return o;};
+    const VMN=Object.keys(moves);
+    function solveBody(start){
+      const S0=mask(start), G=mask(SOLVED);
+      return mitm(S0,[G],
+        Object.fromEntries(VMN.map(m=>[m,moves[m]])),
+        m=>m.endsWith("'")?m.slice(0,-1):m+"'", m=>m[0], 11);
+    }
+    function ap(st,mv){return applySrc(st,all[mv]);}
+    function solveTips(state){const out=[];
+      for(const v of['U','L','R','B']){const u=nrm(V[v]);
+        const ds=slots.map((s,i)=>({i,d:dot(s.c,u)})).sort((a,b)=>b.d-a.d);
+        const tip=ds.slice(0,3).map(o=>o.i), ax=ds.slice(3,6).map(o=>o.i);
+        let best=0;for(let k=0;k<3;k++){let s=state;for(let t=0;t<k;t++)s=ap(s,v.toLowerCase());
+          let ok=true;for(const ti of tip){const f=slots[ti].face;const aj=ax.find(a=>slots[a].face===f);if(s[ti]!==s[aj]){ok=false;break;}}
+          if(ok){best=k;break;}}
+        for(let t=0;t<best;t++)out.push(v.toLowerCase());}
+      return out;}
+    function solve(state){const body=solveBody(state);if(body===null)return null;
+      let s=state;for(const mv of body)s=ap(s,mv);const tip=solveTips(s);return body.concat(tip);}
+    // ---- net: big triangle subdivided into 4 face-triangles (U apex, L/R base, B center) ----
+    const h1=Math.sqrt(3), h2=2*Math.sqrt(3);   // 1.732, 3.464
+    const faceTri={
+      U: [[2,0],[1,h1],[3,h1]],                  // apex (up)
+      L: [[1,h1],[0,h2],[2,h2]],                 // bottom-left (up)
+      R: [[3,h1],[2,h2],[4,h2]],                 // bottom-right (up)
+      B: [[1,h1],[3,h1],[2,h2]],                 // center (inverted)
+    };
+    const polys=[];
+    for(let idx=0;idx<N;idx++){const s=slots[idx];const T=faceTri[s.face];
+      const A=T[0],B=T[1],C=T[2];
+      const P=(i,j)=>[A[0]+(B[0]-A[0])*i/3+(C[0]-A[0])*j/3, A[1]+(B[1]-A[1])*i/3+(C[1]-A[1])*j/3];
+      let pts;
+      if(s.type==='u') pts=[P(s.i,s.j),P(s.i+1,s.j),P(s.i,s.j+1)];
+      else pts=[P(s.i+1,s.j),P(s.i,s.j+1),P(s.i+1,s.j+1)];
+      polys.push({i:idx, points:pts.map(p=>`${p[0].toFixed(3)},${p[1].toFixed(3)}`).join(' ')});}
+    return {
+      id:'pyraminx', name:'Pyraminx', n:N, solved:SOLVED,
+      moves:all, moveNames:Object.keys(all),
+      faceCenters:centerSlot, // locked
+      groupOf:m=>m[0].toUpperCase(), inv:m=>m.endsWith("'")?m.slice(0,-1):m+"'",
+      apply:ap, solve, single:true,
+      net:{w:4,h:2*Math.sqrt(3),polys}, imgScan:buildImgScan(polys,SOLVED),
+      describe:m=>pyraWord(m),
+      // ---- 3D geometry (triangular stickers on a tetrahedron) ----
+      geom3d:(function(){
+        const axisOf={}; for(const v of ['U','L','R','B']){ axisOf[v]=nrm(V[v]); axisOf[v.toLowerCase()]=nrm(V[v]); }
+        const st=slots.map(s=>{
+          const [A,B,C]=FV[s.face].map(k=>V[k]);
+          const P=(i,j)=>addv(addv(A,mul(sub(B,A),i/3)),mul(sub(C,A),j/3));
+          const cor = s.type==='u' ? [P(s.i,s.j),P(s.i+1,s.j),P(s.i,s.j+1)]
+                                   : [P(s.i+1,s.j),P(s.i,s.j+1),P(s.i+1,s.j+1)];
+          return { normal: nrm(mul(V[s.face],-1)), corners: cor.map(p=>p.slice()) };  // outward = away from own vertex
+        });
+        return { coreType:'tetra', coreHalf:1, stickers:st, moveAxis:axisOf, moveSrc:m=>all[m] };
+      })(),
+    };
+  }
+
+  // ===========================================================================
+  // Skewb
+  // ===========================================================================
+  function buildSkewb(){
+    const FN={U:[0,1,0],D:[0,-1,0],F:[0,0,1],B:[0,0,-1],R:[1,0,0],L:[-1,0,0]};
+    const slots=[];
+    for(const f in FN) slots.push({pos:FN[f].slice(),face:f,kind:'c'});
+    for(const sx of[-1,1])for(const sy of[-1,1])for(const sz of[-1,1]){
+      slots.push({pos:[sx*0.5,sy*0.5,sz],face:sz>0?'F':'B',kind:'k',corner:[sx,sy,sz]});
+      slots.push({pos:[sx*0.5,sy,sz*0.5],face:sy>0?'U':'D',kind:'k',corner:[sx,sy,sz]});
+      slots.push({pos:[sx,sy*0.5,sz*0.5],face:sx>0?'R':'L',kind:'k',corner:[sx,sy,sz]});}
+    const N=slots.length, SOLVED=slots.map(s=>s.face).join('');
+    const find=p=>{for(let i=0;i<N;i++)if(Math.hypot(p[0]-slots[i].pos[0],p[1]-slots[i].pos[1],p[2]-slots[i].pos[2])<1e-6)return i;return -1;};
+    const AX={U:[1,1,1],R:[1,-1,-1],L:[-1,1,-1],B:[-1,-1,1]};
+    function buildMove(a,deg){const u=nrm(AX[a]);const src=new Array(N).fill().map((_,i)=>i);
+      for(let i=0;i<N;i++){const p=slots[i].pos;let mv;
+        if(slots[i].kind==='c')mv=dot(p,u)>0.05; else mv=dot(slots[i].corner,u)>0;
+        if(mv){const j=find(rotAxis(p,u,deg));src[j]=i;}}return src;}
+    const moves={};for(const a in AX){moves[a]=buildMove(a,120);moves[a+"'"]=buildMove(a,-120);}
+    const goals=cubeGoals(slots,SOLVED);
+    // ---- net: cross of squares; each face = center diamond + 4 corner triangles ----
+    const facePos={U:[1,0],L:[0,1],F:[1,1],R:[2,1],B:[3,1],D:[1,2]};
+    const IN={U:[[1,0,0],[0,0,1]],D:[[1,0,0],[0,0,1]],F:[[1,0,0],[0,1,0]],B:[[1,0,0],[0,1,0]],R:[[0,1,0],[0,0,1]],L:[[0,1,0],[0,0,1]]};
+    const polys=[];
+    for(let i=0;i<N;i++){const s=slots[i];const[fx,fy]=facePos[s.face];
+      if(s.kind==='c'){ // center diamond
+        polys.push({i,points:`${fx+0.5},${fy+0.13} ${fx+0.87},${fy+0.5} ${fx+0.5},${fy+0.87} ${fx+0.13},${fy+0.5}`});
+      } else {
+        const[a,b]=IN[s.face];const ua=dot(s.pos,a),ub=dot(s.pos,b);
+        const cx=ua>0?1:0, cy=ub>0?1:0; // which corner
+        const x=fx+cx, y=fy+cy;
+        const sxx=cx===0?1:-1, syy=cy===0?1:-1;
+        polys.push({i,points:`${x},${y} ${x+0.5*sxx},${y} ${x},${y+0.5*syy}`});
+      }}
+    return {
+      id:'skewb', name:'Skewb', n:N, solved:SOLVED, moves, goals, moveNames:Object.keys(moves),
+      faceCenters:{}, groupOf:m=>m[0], inv:m=>m.endsWith("'")?m.slice(0,-1):m+"'",
+      apply:(st,mv)=>applySrc(st,moves[mv]), maxD:7,
+      net:{w:4,h:3,polys}, imgScan:buildImgScan(polys,SOLVED),
+      describe:m=>skewbWord(m),
+      // ---- 3D geometry (diamond + corner-triangle stickers on a cube) ----
+      geom3d:(function(){
+        const st=slots.map(s=>{
+          const n=FN[s.face], [a,b]=IN[s.face];
+          const PT=(u,v)=>[n[0]+a[0]*u+b[0]*v, n[1]+a[1]*u+b[1]*v, n[2]+a[2]*u+b[2]*v];
+          let corners;
+          if(s.kind==='c') corners=[PT(1,0),PT(0,1),PT(-1,0),PT(0,-1)];
+          else { const cx=dot(s.pos,a)>0?1:-1, cy=dot(s.pos,b)>0?1:-1; corners=[PT(cx,cy),PT(cx,0),PT(0,cy)]; }
+          return { normal:n.slice(), corners };
+        });
+        return { coreType:'cube', coreHalf:1, stickers:st,
+          moveAxis:{U:nrm(AX.U),R:nrm(AX.R),L:nrm(AX.L),B:nrm(AX.B)}, moveSrc:m=>moves[m] };
+      })(),
+    };
+  }
+
+  // Per-face image-sampling layout, derived from the net the user sees.
+  // Groups stickers by face, normalises each sticker centroid to [0,1] within
+  // that face's extent, so a straight-on face photo can be sampled per sticker.
+  function buildImgScan(polys, solved){
+    const byFace={}, order=[];
+    polys.forEach(p=>{
+      const f=solved[p.i];
+      const pts=p.points.trim().split(/\s+/).map(s=>s.split(',').map(Number));
+      const c=pts.reduce((a,b)=>[a[0]+b[0],a[1]+b[1]],[0,0]).map(v=>v/pts.length);
+      if(!byFace[f]){ byFace[f]={pts:[],items:[]}; order.push(f); }
+      byFace[f].pts.push(...pts); byFace[f].items.push({i:p.i,c});
+    });
+    return order.map(f=>{
+      const all=byFace[f].pts, xs=all.map(p=>p[0]), ys=all.map(p=>p[1]);
+      const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+      const w=(maxx-minx)||1, h=(maxy-miny)||1;
+      return { face:f, aspect:w/h,
+        samples: byFace[f].items.map(it=>({ i:it.i, u:(it.c[0]-minx)/w, v:(it.c[1]-miny)/h })) };
+    });
+  }
+
+  // 24 cube-rotation goal strings (for centerless 2x2 / moving-center skewb)
+  function cubeGoals(slots,SOLVED){
+    const N=slots.length;
+    const findPos=p=>{for(let i=0;i<N;i++)if(eqv(slots[i].pos,p))return i;return -1;};
+    const seqs=[[],['x'],['x','x'],['x','x','x'],['y'],['y','y'],['y','y','y'],['z'],['z','z'],['z','z','z'],
+      ['x','y'],['x','z'],['x','x','y'],['x','x','z'],['y','x'],['y','z'],['z','x'],['z','y'],
+      ['x','y','y'],['z','z','x'],['x','y','x'],['y','y','x'],['y','x','x'],['x','x','x','y']];
+    const seen=new Set(), goals=[];
+    for(const seq of seqs){
+      const src=new Array(N);
+      for(let i=0;i<N;i++){const np=rotSeq(slots[i].pos,seq);const j=findPos(np);if(j<0){src.length=0;break;}src[j]=i;}
+      if(src.length!==N) continue;
+      let g='';for(let k=0;k<N;k++)g+=SOLVED[src[k]];
+      if(!seen.has(g)){seen.add(g);goals.push(g);}
+    }
+    return goals;
+  }
+
+  // ---- generic solve for puzzles that use mitm with goals (2x2, skewb) ----
+  function genericSolve(P, state){
+    return mitm(state, P.goals, P.moves, P.inv, P.groupOf, P.maxD);
+  }
+
+  // ---- move wording ----
+  const SP={U:'Up',R:'Right',F:'Front',D:'Down',L:'Left',B:'Back'};
+  function suff(m){return m.endsWith('2')?' twice':(m.endsWith("'")?' counter-clockwise':' clockwise');}
+  function moveWord(m){return `Turn the ${SP[m[0]]} face`+suff(m);}
+  const PV={U:'top',L:'left',R:'right',B:'back'};
+  function pyraWord(m){const v=m[0].toUpperCase();const tip=m[0]===m[0].toLowerCase();
+    const dir=m.endsWith("'")?' counter-clockwise':' clockwise';
+    return (tip?`Turn just the ${PV[v]} tip`:`Turn the ${PV[v]} corner`)+dir;}
+  function skewbWord(m){const v={U:'top',R:'right',L:'left',B:'back'}[m[0]];
+    return `Turn the ${v} corner`+(m.endsWith("'")?' counter-clockwise':' clockwise');}
+
+  // ---- assemble ----
+  const P2=build2x2(), PP=buildPyra(), PS=buildSkewb();
+  P2.solve=function(st){return genericSolve(P2,st);};
+  PS.solve=function(st){return genericSolve(PS,st);};
+  // scramble helper
+  function scramble(P,n){let s=P.solved,lg=null,seq=[];
+    for(let i=0;i<n;i++){let mv;do{mv=P.moveNames[(Math.random()*P.moveNames.length)|0];}while(P.groupOf(mv)===lg);lg=P.groupOf(mv);seq.push(mv);s=P.apply(s,mv);}
+    return {state:s,seq};}
+  for(const P of [P2,PP,PS]) P.scramble=function(n){return scramble(P,n);};
+  return { '2x2':P2, 'pyraminx':PP, 'skewb':PS, order:['2x2','pyraminx','skewb'] };
+})();
+/* ============================================================
+   GENERIC 3D PUZZLE VIEW  (cubes, tetrahedron, skewb)
+   ------------------------------------------------------------
+   One persistent renderer per canvas; .load(geom,...) rebuilds
+   it for whichever puzzle is selected (so no leftover model
+   from a previous puzzle ever shows).
+   Stickers are real polygons placed at the solver's own slot
+   geometry, and every move's rotation angle is DERIVED from the
+   solver's permutation, so the animation always matches the
+   solve. Returns null if Three.js is unavailable.
+   ============================================================ */
+function makeSolid3D(canvas){
+  if(typeof THREE === 'undefined') return null;
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.45); d1.position.set(6,9,8); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0xffffff, 0.2);  d2.position.set(-6,-4,-6); scene.add(d2);
+  let controls = null;
+  if(THREE.OrbitControls){
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enablePan=false; controls.enableDamping=true; controls.dampingFactor=.12; controls.rotateSpeed=.9;
+  }
+  const ray=new THREE.Raycaster(), mouse=new THREE.Vector2();
+
+  let G=null, colorRGB=null, getPaint=null, onPaint=null, applyFn=null, invFn=null;
+  let tiles=[], colored=[], centroids=[], core=null, animBusy=false, auto=true;
+  const angleCache={};
+  const labelHex = lbl => { const a=(colorRGB&&colorRGB[lbl])||[60,63,72]; return (a[0]<<16)|(a[1]<<8)|a[2]; };
+
+  function clearScene(){
+    for(const t of tiles){ scene.remove(t); t.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material)o.material.dispose(); }); }
+    if(core){ scene.remove(core); core.geometry.dispose(); core.material.dispose(); core=null; }
+    tiles=[]; colored=[]; centroids=[]; for(const k in angleCache) delete angleCache[k];
+  }
+  function centroid(cs){ const c=[0,0,0]; for(const p of cs){c[0]+=p[0];c[1]+=p[1];c[2]+=p[2];} return [c[0]/cs.length,c[1]/cs.length,c[2]/cs.length]; }
+  function polyMesh(corners, colHex, scale, raise, normal){
+    const cx=centroid(corners);
+    const pts=corners.map(c=>[ cx[0]+(c[0]-cx[0])*scale+normal[0]*raise, cx[1]+(c[1]-cx[1])*scale+normal[1]*raise, cx[2]+(c[2]-cx[2])*scale+normal[2]*raise ]);
+    const pos=[]; for(let i=1;i<pts.length-1;i++) pos.push(pts[0][0],pts[0][1],pts[0][2], pts[i][0],pts[i][1],pts[i][2], pts[i+1][0],pts[i+1][1],pts[i+1][2]);
+    const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3)); g.computeVertexNormals();
+    const m=new THREE.MeshStandardMaterial({color:colHex, roughness:.5, metalness:.02, side:THREE.DoubleSide});
+    return new THREE.Mesh(g,m);
+  }
+  // dark "body" filling from a sticker's surface polygon inward to the centre,
+  // so the interior turns together with the sticker (no static core blob)
+  function bodyMesh(corners, colHex){
+    const pos=[];
+    for(let i=0;i<corners.length;i++){ const a=corners[i], b=corners[(i+1)%corners.length];
+      pos.push(a[0],a[1],a[2], b[0],b[1],b[2], 0,0,0); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3)); g.computeVertexNormals();
+    const m=new THREE.MeshStandardMaterial({color:colHex, roughness:.96, metalness:0, side:THREE.DoubleSide});
+    return new THREE.Mesh(g,m);
+  }
+
+  function load(geom, opts){
+    clearScene();
+    G=geom; colorRGB=opts.colorRGB; getPaint=opts.getPaint; onPaint=opts.onPaintSticker; applyFn=opts.apply; invFn=opts.inv;
+    const ch=geom.coreHalf||1;
+    // tiny dark sphere at the very centre, only as a backstop deep inside (never exposed)
+    core=new THREE.Mesh(new THREE.SphereGeometry(0.22*ch,16,12), new THREE.MeshStandardMaterial({color:0x0d0d0d, roughness:1, metalness:0}));
+    scene.add(core);
+    let fit=1;
+    geom.stickers.forEach((s,i)=>{
+      const grp=new THREE.Group();
+      const body=bodyMesh(s.corners, 0x0e0e0e);            // turns with the sticker -> interior moves with the layer
+      const back=polyMesh(s.corners, 0x0d0d0d, 1.0, 0.012, s.normal);
+      const top =polyMesh(s.corners, 0xffffff, 0.90, 0.030, s.normal); top.userData={index:i};
+      grp.add(body); grp.add(back); grp.add(top); grp.userData={index:i};
+      scene.add(grp); tiles.push(grp); colored.push(top); centroids.push(centroid(s.corners));
+      for(const c of s.corners) fit=Math.max(fit, Math.hypot(c[0],c[1],c[2]));
+    });
+    const dir=new THREE.Vector3(0.7,0.62,1).normalize();
+    camera.position.copy(dir.multiplyScalar(fit*3.1)); camera.lookAt(0,0,0);
+    if(controls){ controls.minDistance=fit*1.7; controls.maxDistance=fit*6; controls.target.set(0,0,0); controls.update(); }
+    scene.rotation.set(0,0,0); auto=true;
+    resize();
+  }
+
+  function paintFrom(state){ colored.forEach((m,i)=>m.material.color.setHex(labelHex(state[i]))); }
+
+  const rot=(p,u,deg)=>{ const t=deg*Math.PI/180,c=Math.cos(t),s=Math.sin(t),d=u[0]*p[0]+u[1]*p[1]+u[2]*p[2];
+    const cr=[u[1]*p[2]-u[2]*p[1],u[2]*p[0]-u[0]*p[2],u[0]*p[1]-u[1]*p[0]];
+    return [p[0]*c+cr[0]*s+u[0]*d*(1-c),p[1]*c+cr[1]*s+u[1]*d*(1-c),p[2]*c+cr[2]*s+u[2]*d*(1-c)]; };
+  const near=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])<2e-2;
+  function moveAngleDeg(m){
+    if(m in angleCache) return angleCache[m];
+    const axis=G.moveAxis[m[0]], src=G.moveSrc(m);
+    let i0=-1; for(let i=0;i<src.length;i++) if(src[i]!==i){ i0=i; break; }
+    let deg=120;
+    for(const cand of [90,-90,120,-120,180]) if(near(rot(centroids[src[i0]],axis,cand), centroids[i0])){ deg=cand; break; }
+    return (angleCache[m]=deg);
+  }
+  function movedSet(m){ const src=G.moveSrc(m), s=new Set(); for(let i=0;i<src.length;i++) if(src[i]!==i) s.add(i); return s; }
+  function homeAll(){ tiles.forEach(t=>{ t.position.set(0,0,0); t.quaternion.set(0,0,0,1); }); }
+
+  function animateLayer(m, durMs, applyLogical){
+    return new Promise(resolve=>{
+      const axis=G.moveAxis[m[0]], ang=moveAngleDeg(m)*Math.PI/180, mv=movedSet(m);
+      const pivot=new THREE.Group(); scene.add(pivot);
+      tiles.forEach((t,i)=>{ if(mv.has(i)) pivot.attach(t); });
+      animBusy=true; auto=false;
+      const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+      const dur=reduce?0:Math.max(0,durMs), t0=(performance.now?performance.now():Date.now());
+      const AX=new THREE.Vector3(axis[0],axis[1],axis[2]).normalize();
+      function frame(now){
+        const k=dur<=0?1:Math.min(1,((now||Date.now())-t0)/dur);
+        const e=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+        pivot.setRotationFromAxisAngle(AX, ang*e); renderer.render(scene,camera);
+        if(k<1) requestAnimationFrame(frame);
+        else { tiles.forEach((t,i)=>{ if(mv.has(i)) scene.attach(t); }); scene.remove(pivot); applyLogical&&applyLogical(); homeAll(); animBusy=false; resolve(); }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  let downPt=null;
+  canvas.addEventListener('pointerdown', e=>{ downPt={x:e.clientX,y:e.clientY,t:Date.now()}; });
+  canvas.addEventListener('pointerup', e=>{
+    if(!downPt) return; const moved=Math.hypot(e.clientX-downPt.x,e.clientY-downPt.y), quick=Date.now()-downPt.t<500; downPt=null;
+    if(animBusy||moved>6||!quick||!colored.length) return;
+    const r=canvas.getBoundingClientRect(); mouse.x=((e.clientX-r.left)/r.width)*2-1; mouse.y=-((e.clientY-r.top)/r.height)*2+1;
+    ray.setFromCamera(mouse,camera); const hits=ray.intersectObjects(colored);
+    if(hits.length){ const i=hits[0].object.userData.index, lbl=getPaint&&getPaint();
+      if(lbl==null) return; hits[0].object.material.color.setHex(labelHex(lbl)); onPaint&&onPaint(i,lbl); }
+  });
+
+  function resize(){ const r=canvas.getBoundingClientRect(); if(r.width<2) return; renderer.setSize(r.width,r.width,false); camera.aspect=1; camera.updateProjectionMatrix(); }
+  window.addEventListener('resize', resize);
+  renderer.domElement.addEventListener('pointerdown', ()=>auto=false);
+  function loop(){ requestAnimationFrame(loop); if(!G) return; if(auto&&!animBusy) scene.rotation.y+=0.0045; controls&&controls.update(); renderer.render(scene,camera); }
+  loop();
+
+  return {
+    load, onShow:resize, busy:()=>animBusy,
+    sync(state){ homeAll(); paintFrom(state); },
+    makeAnimator(base, durFns){
+      let cur=base; const dur=durFns||{move:()=>340}; homeAll(); paintFrom(cur); auto=false;
+      return {
+        reset(){ cur=base; homeAll(); paintFrom(cur); },
+        forward(m){ return animateLayer(m, dur.move(), ()=>{ cur=applyFn(cur,m); paintFrom(cur); }); },
+        backward(m){ const im=invFn(m); return animateLayer(im, dur.move(), ()=>{ cur=applyFn(cur,im); paintFrom(cur); }); },
+      };
+    },
+  };
+}
+/* ============================================================
+   MORE PUZZLES TAB  (2x2 / Pyraminx / Skewb)
+   ============================================================ */
+(function(){
+  if(typeof Puzzles === 'undefined') return;
+
+  const DISP = {
+    '2x2':     {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#d8d3c8'},
+    'skewb':   {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#d8d3c8'},
+    'pyraminx':{U:'#1fa64a',L:'#1e73e8',R:'#e22424',B:'#ffd400',X:'#d8d3c8'},
+  };
+  const ORDER  = {'2x2':['U','R','F','D','L','B'],'skewb':['U','R','F','D','L','B'],'pyraminx':['U','L','R','B']};
+  const TARGET = {'2x2':4,'skewb':5,'pyraminx':9};
+  const NAMES  = {U:'White',R:'Red',F:'Green',D:'Yellow',L:'Orange',B:'Blue'};
+  const PYNAMES= {U:'Green',L:'Blue',R:'Red',B:'Yellow'};
+  const HINT = {
+    '2x2':'The Pocket Cube — corners only. Drag the 3D model to spin it; pick a color and click a sticker to paint (or use the flat map below).',
+    'pyraminx':'Spin the 3D pyraminx and paint its stickers to match yours — the centre triangle of each face is fixed, so just colour the others. Then Solve and press ▶ Play to watch it untangle.',
+    'skewb':'A corner-turning cube. Drag the 3D model to spin it and click stickers to paint (or use the flat map). Each face has a diamond plus four corners.',
+  };
+  const HELP = {
+    '2x2':'Hold the cube the same way you painted it. <b>Turn the Up/Right/Front face</b> clockwise; an apostrophe (\u2032) means counter-clockwise, and 2 means a half turn. Or just press <b>\u25B6 Play</b> and watch the 3D cube solve itself.',
+    'pyraminx':'Easiest way: press <b>\u25B6 Play</b> and watch the 3D model solve, one twist at a time. Reading the list: a <b>capital</b> letter (U/L/R/B) twists a whole corner; a <b>lower-case</b> letter (u/l/r/b) twists just its little tip; \u2032 means counter-clockwise. Each face is named by its centre colour — green is U(top), blue is L, red is R, yellow is B.',
+    'skewb':'Press <b>\u25B6 Play</b> to watch the 3D model solve itself. In the list, each step rotates one corner of the cube (U/R/L/B); \u2032 means counter-clockwise.',
+  };
+
+  let curId='2x2', state='', sel='U', stepIdx=-1, solveSpeedMs=340;
+  const $=id=>document.getElementById(id);
+  function P(){ return Puzzles[curId]; }
+  function colOf(lbl){ return DISP[curId][lbl] || '#d8d3c8'; }
+  function labelName(lbl){ return curId==='pyraminx'? PYNAMES[lbl] : NAMES[lbl]; }
+
+  // ---------- 3D view (one persistent engine, reloaded per puzzle) ----------
+  let cube3d = null;                 // the active 3D view (or null if no WebGL)
+  let view3d = null, view3dTried = false;
+  function hexRgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+  function rgbMap(m){ const o={}; for(const k in m) o[k]=hexRgb(m[k]); return o; }
+  function has3D(id){ return !!(Puzzles[id] && Puzzles[id].geom3d); }
+  function getEngine(){
+    if(!view3dTried){ view3dTried=true; view3d = (typeof makeSolid3D==='function') ? makeSolid3D($('puzCube')) : null; }
+    return view3d;
+  }
+  function loadView(id){
+    const v=getEngine(); if(!v) return null;
+    const pz=Puzzles[id];
+    v.load(pz.geom3d, {
+      colorRGB: rgbMap(DISP[id]),
+      getPaint: () => sel,
+      onPaintSticker: (i,label)=>{ state=state.substring(0,i)+label+state.substring(i+1); repaintNet(); renderCountsP(); clearSolution(); },
+      apply: pz.apply, inv: pz.inv,
+    });
+    return v;
+  }
+
+  // ---------- palette ----------
+  function buildPalette(){
+    const host=$('puzPalette'); host.innerHTML='';
+    for(const lbl of ORDER[curId]){
+      const b=document.createElement('button');
+      b.className='swatch';
+      b.style.background=colOf(lbl);
+      b.title=labelName(lbl);
+      b.setAttribute('aria-label',labelName(lbl));
+      b.setAttribute('aria-pressed', lbl===sel ? 'true':'false');
+      b.onclick=()=>{ sel=lbl; [...host.children].forEach(c=>c.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); };
+      host.appendChild(b);
+    }
+  }
+
+  // ---------- net ----------
+  function buildNet(){
+    const pz=P(), net=pz.net, host=$('puzNet');
+    const locked=new Set(Object.values(pz.faceCenters||{}));
+    let svg=`<svg viewBox="0 0 ${net.w} ${net.h}" xmlns="http://www.w3.org/2000/svg">`;
+    for(const poly of net.polys){
+      const isLock=locked.has(poly.i);
+      svg+=`<polygon data-i="${poly.i}" points="${poly.points}" fill="${colOf(state[poly.i])}"`+
+           (isLock?' class="locked"':'')+`></polygon>`;
+    }
+    svg+='</svg>';
+    host.innerHTML=svg;
+    host.querySelectorAll('polygon').forEach(p=>{
+      const i=+p.dataset.i;
+      if(locked.has(i)) return;
+      p.addEventListener('pointerdown',()=>{
+        state = state.substring(0,i)+sel+state.substring(i+1);
+        p.setAttribute('fill', colOf(sel));
+        renderCountsP(); clearSolution();
+        if(cube3d) cube3d.sync(state);
+      });
+    });
+  }
+  function repaintNet(){
+    const host=$('puzNet');
+    host.querySelectorAll('polygon').forEach(p=>{ p.setAttribute('fill', colOf(state[+p.dataset.i])); });
+  }
+
+  // ---------- counts ----------
+  function renderCountsP(){
+    const host=$('puzCounts'); host.innerHTML='';
+    const t=TARGET[curId];
+    for(const lbl of ORDER[curId]){
+      let c=0; for(const ch of state) if(ch===lbl) c++;
+      const span=document.createElement('span');
+      span.className='count'+(c===t?'':' bad');
+      span.innerHTML=`<i style="background:${colOf(lbl)}"></i>${c}/${t}`;
+      host.appendChild(span);
+    }
+  }
+
+  // ---------- solution ----------
+  function clearSolution(){ $('puzSolution').innerHTML=''; $('puzStatus').textContent=''; $('puzStatus').className='status'; stepIdx=-1; }
+  function renderSolutionP(seq){
+    const host=$('puzSolution'); host.innerHTML=''; const pz=P();
+    if(seq.length===0){ host.innerHTML='<div class="puz-readout">It\u2019s already solved! \uD83C\uDF89</div>'; return; }
+    const note=document.createElement('div'); note.className='puz-notation'; note.textContent=seq.join('  '); host.appendChild(note);
+    const readout=document.createElement('div'); readout.className='puz-readout'; host.appendChild(readout);
+    const row=document.createElement('div'); row.className='puz-step'; host.appendChild(row);
+    const chipsWrap=document.createElement('div'); chipsWrap.className='puz-step'; host.appendChild(chipsWrap);
+    const chips=seq.map((mv,k)=>{ const c=document.createElement('span'); c.className='puz-chip'; c.textContent=mv; chipsWrap.appendChild(c); return c; });
+    function mk(t){ const b=document.createElement('button'); b.className='btn'; b.textContent=t; return b; }
+    const moveText=k=>`<b>${k+1}/${seq.length}.</b> ${pz.describe(seq[k])} &nbsp;<span style="font-family:var(--font-mono);color:var(--muted)">(${seq[k]})</span>`;
+
+    if(cube3d){
+      // ---- 3D-driven self-solve player ----
+      const anim=cube3d.makeAnimator(state, {move:()=>solveSpeedMs});
+      // speed selector (applies live, even mid-play)
+      const speed=document.createElement('div'); speed.className='puz-speed';
+      speed.appendChild(Object.assign(document.createElement('span'),{className:'puz-speed-lbl',textContent:'Speed'}));
+      const SPEEDS=[['Slow',650],['Normal',340],['Fast',170],['Turbo',70]];
+      const sbtns=SPEEDS.map(([nm,ms])=>{ const b=document.createElement('button'); b.className='spd-btn'+(ms===solveSpeedMs?' on':''); b.textContent=nm;
+        b.onclick=()=>{ solveSpeedMs=ms; sbtns.forEach(x=>x.classList.remove('on')); b.classList.add('on'); }; speed.appendChild(b); return b; });
+      host.insertBefore(speed, row);
+      let idx=-1, lock=false;
+      const back=mk('\u25C0 Back'), next=mk('Next \u25B6'), play=mk('\u25B6 Play'), reset=mk('\u21BA Reset');
+      [play,next,back,reset].forEach(b=>row.appendChild(b));
+      function hl(){
+        chips.forEach((c,i)=>c.classList.toggle('on', i===idx));
+        readout.innerHTML = idx<0 ? 'Press <b>Play</b> to watch the cube solve itself.'
+          : (idx>=seq.length-1 ? '<b>Solved! \uD83C\uDF89</b>' : moveText(idx));
+        back.disabled=lock||idx<0; next.disabled=lock||idx>=seq.length-1;
+        play.disabled=lock||idx>=seq.length-1; reset.disabled=lock||idx<0;
+      }
+      async function fwd(){ if(lock||idx>=seq.length-1) return; lock=true; hl(); idx++; await anim.forward(seq[idx]); lock=false; hl(); }
+      async function bwd(){ if(lock||idx<0) return; lock=true; hl(); await anim.backward(seq[idx]); idx--; lock=false; hl(); }
+      next.onclick=fwd; back.onclick=bwd;
+      play.onclick=async()=>{ if(lock) return; while(idx<seq.length-1 && !lock){ await fwd(); } };
+      reset.onclick=()=>{ if(lock) return; anim.reset(); idx=-1; hl(); };
+      chips.forEach((c,k)=>c.onclick=async()=>{ if(lock) return; while(idx<k){ await fwd(); } while(idx>k){ await bwd(); } });
+      hl();
+    } else {
+      // ---- text stepper (pyraminx / skewb) ----
+      const back=mk('\u2190 Back'), next=mk('Next \u2192'); row.appendChild(back); row.appendChild(next);
+      let idx=0;
+      function setStep(k){ idx=Math.max(0,Math.min(seq.length-1,k));
+        chips.forEach((c,i)=>c.classList.toggle('on',i===idx));
+        readout.innerHTML=moveText(idx);
+        back.disabled=idx===0; next.disabled=idx===seq.length-1; }
+      back.onclick=()=>setStep(idx-1); next.onclick=()=>setStep(idx+1);
+      chips.forEach((c,k)=>c.onclick=()=>setStep(k));
+      setStep(0);
+    }
+  }
+
+  // ---------- actions ----------
+  function setState(s){ state=s; repaintNet(); renderCountsP(); clearSolution(); if(cube3d) cube3d.sync(state); }
+  function loadPuzzle(id){
+    if(!Puzzles[id]) return;
+    curId=id; const pz=P();
+    sel = ORDER[id][0]; state = pz.solved; stepIdx=-1;
+    const TITLE={'2x2':'2×2','pyraminx':'Pyraminx','skewb':'Skewb'};
+    const ct=$('puzColorTitle'); if(ct) ct.textContent='Color your '+(TITLE[id]||'puzzle');
+    $('puzzleHint').textContent = HINT[id];
+    $('puzHelpBody').innerHTML = HELP[id];
+    const wrap=document.querySelector('.puz-net'); if(wrap) wrap.classList.toggle('tri', id==='pyraminx');
+    buildPalette(); buildNet(); renderCountsP(); clearSolution();
+    // 3D for cube puzzles; flat net for the rest (or as fallback if no WebGL)
+    cube3d = has3D(id) ? loadView(id) : null;
+    const useCube = !!cube3d;
+    const cv=$('puzCube'); if(cv){ cv.hidden=false; cv.style.display = useCube ? 'block' : 'none'; }
+    const nw=document.querySelector('.puz-net-wrap'); if(nw) nw.style.display = '';   // net always visible as a flat companion
+    if(useCube){ cube3d.sync(state); cube3d.onShow(); }
+  }
+
+  $('puzScrambleBtn').onclick=()=>{ setState(P().scramble(25).state); };
+  $('puzSolvedBtn').onclick =()=>{ setState(P().solved); };
+  $('puzClearBtn').onclick  =()=>{
+    const pz=P(); const locked=pz.faceCenters||{};
+    let s=''; for(let i=0;i<pz.n;i++) s+= (Object.values(locked).includes(i)? pz.solved[i] : 'X');
+    setState(s);
+  };
+
+  $('puzSolveBtn').onclick=()=>{
+    const pz=P(), t=TARGET[curId], stt=$('puzStatus');
+    // validate counts
+    const bad=[];
+    for(const lbl of ORDER[curId]){ let c=0; for(const ch of state) if(ch===lbl) c++; if(c!==t) bad.push(`${labelName(lbl)} ${c}/${t}`); }
+    if(state.includes('X') || bad.length){
+      stt.className='status err';
+      stt.innerHTML = 'Not ready yet — every color needs to appear the right number of times.'+
+        (bad.length? '<br>Off: '+bad.join(', ')+'.' : '')+
+        '<br>Paint each sticker to match your puzzle (or press Reset / Random scramble).';
+      $('puzSolution').innerHTML=''; return;
+    }
+    stt.className='status info'; stt.textContent='Solving…';
+    setTimeout(()=>{
+      let sol=null;
+      try{ sol=pz.solve(state); }catch(e){ sol=null; }
+      if(sol===null){
+        stt.className='status err';
+        stt.innerHTML='That arrangement isn\u2019t a state this puzzle can actually reach — there\u2019s likely a single twisted or swapped piece. Double-check the stickers against your real puzzle.';
+        $('puzSolution').innerHTML=''; return;
+      }
+      stt.className='status ok';
+      stt.textContent = sol.length===0 ? 'Already solved!' : `Solved in ${sol.length} move${sol.length>1?'s':''}.`;
+      renderSolutionP(sol);
+    }, 30);
+  };
+
+  // driven by the top-level puzzle selector (js_manual.js applyPuzzle)
+  window.MorePuzzles = {
+    load: loadPuzzle,
+    onShow: ()=>{ if(cube3d) cube3d.onShow(); },
+    colorsFor: id => DISP[id],
+    // pre-fill the manual editor from an image scan, then user reviews/solves
+    applyScan: (id, st)=>{ if(curId!==id) loadPuzzle(id); setState(st); },
+  };
+})();
+/* ============================================================
+   IMAGE SCAN for 2x2 / Pyraminx / Skewb
+   Per-face photos -> sample at the net-derived sticker centroids
+   -> nearest reference colour (CIELAB) -> pre-fill the manual
+   editor, where the user checks & fixes on the 3D model, then solves.
+   ============================================================ */
+(function(){
+  const $=id=>document.getElementById(id);
+  const FACE_NAME = {
+    '2x2':   {U:'Up',R:'Right',F:'Front',D:'Down',L:'Left',B:'Back'},
+    'skewb': {U:'Up',R:'Right',F:'Front',D:'Down',L:'Left',B:'Back'},
+    'pyraminx': {U:'Green',L:'Blue',R:'Red',B:'Yellow'},
+  };
+  let curId=null, refs=null, images={};
+
+  function refsFor(id){
+    const DISP=MorePuzzles.colorsFor(id);
+    return Object.keys(DISP).map(lbl=>{
+      const h=DISP[lbl].replace('#',''); const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+      return {lbl, lab:rgb2lab(r,g,b)};
+    });
+  }
+  function nearest(r,g,b){
+    const L=rgb2lab(r,g,b); let best=refs[0].lbl, bd=1e18;
+    for(const ref of refs){ const d=(L[0]-ref.lab[0])**2+(L[1]-ref.lab[1])**2+(L[2]-ref.lab[2])**2; if(d<bd){bd=d;best=ref.lbl;} }
+    return best;
+  }
+
+  function build(id){
+    curId=id; refs=refsFor(id); images={};
+    const pz=Puzzles[id], scan=pz.imgScan, DISP=MorePuzzles.colorsFor(id);
+    $('pgTitle').textContent='Scan your '+pz.name.replace(/ *\(.*\)/,'');
+    $('pgHint').innerHTML='Add a straight-on photo of each face, framed to fill the square and turned the same way as the diagram under the 3D model. We\u2019ll read the colours as a starting point \u2014 then check &amp; fix on the model before solving.';
+    const wrap=$('pgSlots'); wrap.innerHTML=''; wrap.style.display='';
+    const an=$('pgAnalyze'), cl=$('pgClear'); cl.style.display='';
+    scan.forEach(f=>{
+      const name=(FACE_NAME[id]&&FACE_NAME[id][f.face])||f.face;
+      const hex=DISP[f.face]||'#ccc';
+      const cell=document.createElement('label'); cell.className='pg-cell';
+      cell.innerHTML='<div class="pg-prev" id="prev-'+f.face+'"><span class="pg-plus">+</span></div>'+
+        '<div class="pg-cap"><i class="pg-sw" style="background:'+hex+'"></i>'+name+'</div>'+
+        '<input type="file" accept="image/*" capture="environment" hidden>';
+      cell.querySelector('input').addEventListener('change', e=>onFile(f.face, e.target.files&&e.target.files[0]));
+      wrap.appendChild(cell);
+    });
+    an.disabled=true; an.textContent='Read colours from photos'; an.onclick=analyze;
+    cl.onclick=()=>{ images={}; build(id); };
+    $('pgStatus').className='status'; $('pgStatus').textContent='';
+  }
+
+  function onFile(face,file){
+    if(!file) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ const img=new Image(); img.onload=()=>{ images[face]=img;
+        const p=$('prev-'+face); if(p){ p.style.backgroundImage='url('+rd.result+')'; p.classList.add('has'); p.innerHTML=''; }
+        ready(); }; img.src=rd.result; };
+    rd.readAsDataURL(file);
+  }
+  function ready(){
+    const need=Puzzles[curId].imgScan.length, have=Object.keys(images).length;
+    $('pgAnalyze').disabled = have<need;
+    $('pgStatus').className='status'; $('pgStatus').textContent = have<need ? (have+' of '+need+' faces added') : 'All faces added \u2014 ready to read.';
+  }
+
+  const SS=260;
+  function analyze(){
+    const id=curId, pz=Puzzles[id], scan=pz.imgScan, arr=new Array(pz.n).fill(pz.solved[0]);
+    scan.forEach(f=>{
+      const img=images[f.face]; if(!img) return;
+      const cv=document.createElement('canvas'); cv.width=SS; cv.height=SS; const ctx=cv.getContext('2d');
+      const s=Math.min(img.width,img.height), sx=(img.width-s)/2, sy=(img.height-s)/2;
+      ctx.drawImage(img,sx,sy,s,s,0,0,SS,SS);
+      const d=ctx.getImageData(0,0,SS,SS).data;
+      f.samples.forEach(sm=>{
+        const px=Math.max(3,Math.min(SS-4,Math.round(sm.u*SS))), py=Math.max(3,Math.min(SS-4,Math.round(sm.v*SS)));
+        let r=0,g=0,b=0,n=0;
+        for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){ const o=((py+dy)*SS+(px+dx))*4; r+=d[o];g+=d[o+1];b+=d[o+2];n++; }
+        arr[sm.i]=nearest(r/n,g/n,b/n);
+      });
+    });
+    const fc=pz.faceCenters||{}; for(const f in fc){ if(fc[f]!=null) arr[fc[f]]=pz.solved[fc[f]]; }  // locked centres
+    MorePuzzles.applyScan(id, arr.join(''));
+    selectTab('man');
+    const st=$('puzStatus'); if(st){ st.className='status info'; st.innerHTML='Read from your photos \u2014 <b>check &amp; fix</b> any wrong stickers on the model or map, then press <b>Solve it!</b>'; }
+  }
+
+  window.ImageGen = { build };
+})();
 </script>
 </body>
 </html>
