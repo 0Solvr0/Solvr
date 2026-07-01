@@ -15,28 +15,28 @@
 <style>
 /* ============================================================
    DESIGN TOKENS — "Solvr"
-   Warm, welcoming light theme: soft cream paper, rounded friendly
-   type, a sunny coral accent. The six saturated sticker colors stay
+   Soft lavender light theme: pale violet paper, rounded friendly
+   type, a calm purple accent. The six saturated sticker colors stay
    vivid so the cube always reads clearly against the soft backdrop.
    ============================================================ */
 :root{
-  --bg:#fcf6ee;          /* warm cream paper */
+  --bg:#f3f2fc;          /* warm cream paper */
   --panel:#ffffff;       /* card surface */
-  --panel-2:#fbf1e4;     /* soft raised surface */
-  --line:#ecdfce;        /* gentle hairline borders */
-  --text:#4b4239;        /* warm ink */
-  --muted:#9a8c7b;       /* secondary text */
-  --accent:#ff7a59;      /* sunny coral — the friendly accent */
-  --accent-2:#ff9472;    /* coral hover */
+  --panel-2:#efedfb;     /* soft raised surface */
+  --line:#e4e1f6;        /* gentle hairline borders */
+  --text:#2a2a40;        /* warm ink */
+  --muted:#847fa6;       /* secondary text */
+  --accent:#6c5ce7;      /* sunny coral — the friendly accent */
+  --accent-2:#8a7bf0;    /* coral hover */
   --accent-ink:#ffffff;  /* text on coral */
-  --accent-soft:#ffe7dc; /* coral tint for highlights */
+  --accent-soft:#e9e5fb; /* coral tint for highlights */
   --danger:#e0573c;      /* error */
   --ok:#2aa56a;          /* success */
 
   /* The six physical cube colors (vivid, slightly glossy) */
   --c-W:#fbfbf7; --c-Y:#ffd21f; --c-R:#e63329;
   --c-O:#ff7a18; --c-B:#2a6fe0; --c-G:#1faa4d;
-  --c-X:#ece2d3;         /* uncolored sticker (soft warm gray) */
+  --c-X:#e4e1f6;         /* uncolored sticker (soft warm gray) */
 
   --radius:18px;
   --font-display:'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -48,8 +48,8 @@
 html,body{margin:0}
 body{
   background:
-    radial-gradient(900px 520px at 88% -8%, #fff3e3 0%, transparent 60%),
-    radial-gradient(820px 520px at -5% 0%, #fdeee0 0%, transparent 55%),
+    radial-gradient(900px 520px at 88% -8%, #efeafe 0%, transparent 60%),
+    radial-gradient(820px 520px at -5% 0%, #f0ecfe 0%, transparent 55%),
     var(--bg);
   color:var(--text);
   font-family:var(--font-body);
@@ -116,7 +116,7 @@ h1{font-family:var(--font-display);font-weight:600;font-size:1.8rem;letter-spaci
 /* ---------- 3D cube host ---------- */
 #cube3d{
   width:100%;aspect-ratio:1/1;max-height:460px;border-radius:16px;
-  background:radial-gradient(120% 120% at 50% 18%, #fff7ec 0%, #f4e7d4 72%);
+  background:radial-gradient(120% 120% at 50% 18%, #f4f1fe 0%, #e7e3f7 72%);
   border:1.5px solid var(--line);touch-action:none;cursor:crosshair;display:block;
 }
 .cube-fallback{display:none}
@@ -172,7 +172,7 @@ h1{font-family:var(--font-display);font-weight:600;font-size:1.8rem;letter-spaci
 .faces-up{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
 .slot{
   border:2px dashed var(--line);border-radius:14px;padding:10px 12px;text-align:left;
-  background:#fffdfa;cursor:pointer;transition:.12s;position:relative;overflow:hidden;
+  background:#fbfaff;cursor:pointer;transition:.12s;position:relative;overflow:hidden;
   display:flex;align-items:center;gap:11px;
 }
 .slot:hover{border-color:var(--accent);background:#fff6f1}
@@ -194,9 +194,9 @@ h1{font-family:var(--font-display);font-weight:600;font-size:1.8rem;letter-spaci
 .status.info{color:var(--muted)}
 .counts{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
 .count{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted);font-weight:700;
-  background:#fffdfa;border:1.5px solid var(--line);border-radius:20px;padding:4px 11px}
+  background:#fbfaff;border:1.5px solid var(--line);border-radius:20px;padding:4px 11px}
 .count i{width:12px;height:12px;border-radius:4px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
-.count.bad{color:var(--danger);border-color:#f0c4b8;background:#fdeee9}
+.count.bad{color:var(--danger);border-color:#e6c4dd;background:#f4ecf6}
 
 /* spinner */
 .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(120,86,54,.25);
@@ -283,7 +283,7 @@ a{color:var(--accent)}
 /* 3D cube view inside the More-puzzles (generic) panel */
 #puzCube{
   width:100%;aspect-ratio:1/1;max-height:460px;border-radius:16px;
-  background:radial-gradient(120% 120% at 50% 18%, #fff7ec 0%, #f4e7d4 72%);
+  background:radial-gradient(120% 120% at 50% 18%, #f4f1fe 0%, #e7e3f7 72%);
   border:1.5px solid var(--line);touch-action:none;cursor:crosshair;display:block;margin-bottom:6px;
 }
 
@@ -291,18 +291,18 @@ a{color:var(--accent)}
 .pg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
 @media(max-width:520px){.pg-grid{grid-template-columns:repeat(2,1fr)}}
 .pg-cell{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
-.pg-prev{width:100%;aspect-ratio:1/1;border-radius:14px;border:2px dashed #e2d8c6;background:#fbf6ee center/cover no-repeat;
+.pg-prev{width:100%;aspect-ratio:1/1;border-radius:14px;border:2px dashed #ddd8f2;background:#f3f2fc center/cover no-repeat;
   display:flex;align-items:center;justify-content:center;transition:border-color .15s,transform .1s}
 .pg-cell:hover .pg-prev{border-color:var(--accent);transform:translateY(-1px)}
-.pg-prev.has{border-style:solid;border-color:#d8cdbb}
-.pg-plus{font:600 30px/1 'Nunito',sans-serif;color:#c9bda8}
-.pg-cap{display:flex;align-items:center;gap:6px;font:600 13px/1.1 'Nunito',sans-serif;color:#6b6256}
+.pg-prev.has{border-style:solid;border-color:#cfcaee}
+.pg-plus{font:600 30px/1 'Nunito',sans-serif;color:#b3add6}
+.pg-cap{display:flex;align-items:center;gap:6px;font:600 13px/1.1 'Nunito',sans-serif;color:#5b5680}
 .pg-sw{width:13px;height:13px;border-radius:4px;border:1px solid rgba(0,0,0,.18);display:inline-block}
 
 /* ---- solve speed selector ---- */
 .puz-speed{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:4px 0 12px}
 .puz-speed-lbl{font:600 13px/1 'Nunito',sans-serif;color:var(--muted);margin-right:2px}
-.spd-btn{font:600 13px/1 'Nunito',sans-serif;color:#6b6256;background:#fff;border:1.5px solid #e7ddcc;
+.spd-btn{font:600 13px/1 'Nunito',sans-serif;color:#5b5680;background:#fff;border:1.5px solid #ddd8f2;
   border-radius:999px;padding:6px 13px;cursor:pointer;transition:all .12s}
 .spd-btn:hover{border-color:var(--accent)}
 .spd-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -2853,6 +2853,7 @@ function describeMove(m){
 function renderSolution(host, solution, opts){
   opts = opts || {};
   const animator = opts.animator || null;
+  const describeFn = opts.describe || null;   // puzzle-specific move wording (else 3x3 describeMove)
   host.innerHTML = '';
 
   if(solution === ''){
@@ -2865,7 +2866,7 @@ function renderSolution(host, solution, opts){
 
   const head = elc('div', 'status ok');
   head.innerHTML = `Done! Solved in <b>${moves.length}</b> moves.`;
-  host.appendChild(head);
+  if(!opts.noHead) host.appendChild(head);
 
   // Move chips (clickable to jump to that point)
   const movesEl = elc('div', 'moves');
@@ -2887,9 +2888,13 @@ function renderSolution(host, solution, opts){
     movesEl.querySelectorAll('.move').forEach((el, i) => el.classList.toggle('active', i === pos - 1));
     if(nowBadge){
       if(pos > 0){
-        const d = describeMove(moves[pos - 1]);
         nowBadge.textContent = moves[pos - 1];
-        nowDesc.innerHTML = `${d.face} face — ${d.dir}<small>move ${pos} of ${moves.length} · ${d.amt}</small>`;
+        if(describeFn){
+          nowDesc.innerHTML = `${describeFn(moves[pos - 1])}<small>move ${pos} of ${moves.length}</small>`;
+        } else {
+          const d = describeMove(moves[pos - 1]);
+          nowDesc.innerHTML = `${d.face} face — ${d.dir}<small>move ${pos} of ${moves.length} · ${d.amt}</small>`;
+        }
       } else {
         nowBadge.textContent = '–';
         nowDesc.innerHTML = `Ready when you are<small>press ▶ to watch the cube solve itself</small>`;
@@ -3299,20 +3304,19 @@ function applyPuzzle(id){
   currentPuzzle = id;
   document.querySelectorAll('#puzzleSel .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.puz === id));
   const is3 = id === '3x3';
-  const generic = (id === '2x2' || id === 'pyraminx' || id === 'skewb');
-  const soon = (id === '4x4' || id === '5x5');
+  const generic = (id === '2x2' || id === '4x4' || id === '5x5' || id === 'pyraminx' || id === 'skewb');
+  const soon = false;
   showEl('man-3x3', is3); showEl('man-generic', generic); showEl('man-soon', soon);
   showEl('img-3x3', is3); showEl('img-other', !is3);
   if(generic && window.MorePuzzles) window.MorePuzzles.load(id);
   if(soon){
-    const sizes = {'4x4':'4×4 (Rubik\u2019s Revenge)', '5x5':'5×5 (Professor\u2019s Cube)'};
     const st = document.getElementById('soonTitle'), sb = document.getElementById('soonBody');
-    if(st) st.textContent = sizes[id] + ' solver — in progress';
+    if(st) st.textContent = '5\u00d75 (Professor\u2019s Cube) solver — in progress';
     if(sb) sb.innerHTML =
-      'The bigger cubes are far too large to solve by direct search — they need a <b>reduction</b> method: '+
+      'The 5×5 is far too large to solve by direct search — it needs a <b>reduction</b> method: '+
       'group the centre pieces, pair up the edges, then finish it like a 3×3 (handling the special parity cases). '+
       'That engine is being built and verified the same careful way as the others, and it\u2019ll appear right here when it\u2019s ready. '+
-      'For now, <b>2×2, 3×3, Pyraminx and Skewb</b> are fully solvable.';
+      'For now, <b>2×2, 3×3, Pyraminx and Skewb</b> are fully solvable, and the <b>4×4</b> can show you a scramble solving itself.';
   }
   if(!is3){
     const hasScan = window.ImageGen && Puzzles[id] && Puzzles[id].imgScan;
@@ -3321,7 +3325,7 @@ function applyPuzzle(id){
       const t=document.getElementById('pgTitle'), h=document.getElementById('pgHint'), sl=document.getElementById('pgSlots'),
             a=document.getElementById('pgAnalyze'), c=document.getElementById('pgClear');
       if(t) t.textContent='Photo scanning — coming soon';
-      if(h) h.innerHTML='The '+(id==='4x4'?'4×4':'5×5')+' solver is still being built, so photo scanning isn\u2019t available for it yet. The 2×2, Pyraminx and Skewb can all be scanned today.';
+      if(h) h.innerHTML = 'Reading a '+(id==='5x5'?'5×5':'4×4')+' from a photo needs the full from-any-state solver, which I\u2019m still building. For now, use <b>Manual Coloring</b> \u2192 <b>Random scramble</b> \u2192 <b>Solve it!</b> to watch the cube solve. The 2×2, Pyraminx and Skewb can be scanned today.';
       if(sl) sl.innerHTML=''; if(a) a.disabled=true; if(c) c.style.display='none';
     }
   }
@@ -4041,7 +4045,71 @@ const Puzzles = (function(){
     return `Turn the ${v} corner`+(m.endsWith("'")?' counter-clockwise':' clockwise');}
 
   // ---- assemble ----
-  const P2=build2x2(), PP=buildPyra(), PS=buildSkewb();
+  // ===========================================================================
+  // N x N cube (4x4 Rubik's Revenge, 5x5 Professor's Cube) — one geometry-derived
+  // move engine for any N: outer + wide (2-layer) turns, 3D model + flat net.
+  // NOTE: a from-any-state reduction solver (centres -> edge pairing -> 3x3 +
+  // parity) is a big separate piece; for now solve() returns the verified
+  // inverse of a Random-scramble sequence so you can watch a scramble unwind.
+  // ===========================================================================
+  function buildNxN(N){
+    const half=N/2;
+    const FACES=['U','R','F','D','L','B'];
+    const NORM={U:[0,1,0],R:[1,0,0],F:[0,0,1],D:[0,-1,0],L:[-1,0,0],B:[0,0,-1]};
+    const INP={U:[[1,0,0],[0,0,1]],D:[[1,0,0],[0,0,1]],R:[[0,1,0],[0,0,1]],L:[[0,1,0],[0,0,1]],F:[[1,0,0],[0,1,0]],B:[[1,0,0],[0,1,0]]};
+    const co=Array.from({length:N},(_,k)=>-half+0.5+k);
+    const slots=[];                              // {pos,face,i,j}
+    for(const f of FACES){ const n=mul(NORM[f],half), [a,b]=INP[f];
+      for(let i=0;i<N;i++)for(let j=0;j<N;j++)
+        slots.push({pos:addv(addv(n,mul(a,co[i])),mul(b,co[j])), face:f, i, j}); }
+    const SOLVED=slots.map(s=>s.face).join('');
+    const key=p=>p.map(v=>Math.round(v*2)/2).join(',');
+    const idx={}; slots.forEach((s,k)=>idx[key(s.pos)]=k);
+    const axisVal=(p,ax)=> ax[0]?p[0] : ax[1]?p[1] : p[2];
+    function permFor(f, layers, deg){
+      const ax=NORM[f], sgn=ax[0]+ax[1]+ax[2], src=new Array(slots.length);
+      for(let k=0;k<slots.length;k++){
+        const depth=sgn*axisVal(slots[k].pos,ax);
+        if(depth > (half-layers)+0.01){ src[k]=idx[key(rotAxis(slots[k].pos,ax,-deg))]; }
+        else src[k]=k;
+      }
+      return src;
+    }
+    const comp=(a,b)=>{ const r=new Array(a.length); for(let k=0;k<a.length;k++) r[k]=a[b[k]]; return r; };
+    const moves={};
+    for(const f of FACES){
+      const o1=permFor(f,1,-90); moves[f]=o1; moves[f+'2']=comp(o1,o1); moves[f+"'"]=comp(comp(o1,o1),o1);
+      const w1=permFor(f,2,-90), lf=f.toLowerCase(); moves[lf]=w1; moves[lf+'2']=comp(w1,w1); moves[lf+"'"]=comp(comp(w1,w1),w1);
+    }
+    const moveNames=Object.keys(moves);
+    const ap=(st,mv)=>applySrc(st,moves[mv]);
+    const inv=m=> m.endsWith('2')?m : m.endsWith("'")?m.slice(0,-1) : m+"'";
+    const groupOf=m=>m[0].toUpperCase();
+    // scramble records its sequence so solve() can return the verified inverse
+    let lastSeq=null, lastState=null;
+    function scramble(n){ n=n||30; let s=SOLVED, lg=null, seq=[];
+      for(let i=0;i<n;i++){ let mv; do{ mv=moveNames[(Math.random()*moveNames.length)|0]; }while(groupOf(mv)===lg); lg=groupOf(mv); seq.push(mv); s=ap(s,mv); }
+      lastSeq=seq; lastState=s; return {state:s, seq}; }
+    function solve(state){ if(lastSeq && state===lastState) return lastSeq.map(inv).reverse(); return null; }
+    // net: standard cube cross of NxN grids
+    const BLK={U:[1,0],L:[0,1],F:[1,1],R:[2,1],B:[3,1],D:[1,2]}, gap=0.06, polys=[];
+    slots.forEach((s,k)=>{ const [bc,br]=BLK[s.face], x=bc*N+s.i, y=br*N+s.j;
+      polys.push({i:k, points:`${x+gap},${y+gap} ${x+1-gap},${y+gap} ${x+1-gap},${y+1-gap} ${x+gap},${y+1-gap}`}); });
+    // 3D geometry (square stickers on a cube)
+    const geom3d={ coreType:'cube', coreHalf:half, moveAxis:{}, moveSrc:m=>moves[m],
+      stickers: slots.map(s=>{ const [a,b]=INP[s.face], p=s.pos, h=0.46;
+        const C=(sa,sb)=>[p[0]+a[0]*sa*h+b[0]*sb*h, p[1]+a[1]*sa*h+b[1]*sb*h, p[2]+a[2]*sa*h+b[2]*sb*h];
+        return { normal:NORM[s.face].slice(), corners:[C(1,1),C(-1,1),C(-1,-1),C(1,-1)] }; }) };
+    for(const f of FACES){ geom3d.moveAxis[f]=NORM[f].slice(); geom3d.moveAxis[f.toLowerCase()]=NORM[f].slice(); }
+    function describe(m){ const f={U:'Up',R:'Right',F:'Front',D:'Down',L:'Left',B:'Back'}[m[0].toUpperCase()];
+      const wide=m[0]===m[0].toLowerCase(), dir=m.endsWith("'")?'counter-clockwise':m.endsWith('2')?'180\u00b0':'clockwise';
+      return (wide?`Turn the two ${f} layers `:`Turn the ${f} face `)+dir; }
+    return { id:N+'x'+N, name:N+'\u00d7'+N, n:slots.length, solved:SOLVED, moves, moveNames,
+      apply:ap, inv, groupOf, single:true, reduction:true, scramble, solve,
+      net:{w:4*N,h:3*N,polys}, describe, geom3d };
+  }
+
+  const P2=build2x2(), PP=buildPyra(), PS=buildSkewb(), R4=buildNxN(4), R5=buildNxN(5);
   P2.solve=function(st){return genericSolve(P2,st);};
   PS.solve=function(st){return genericSolve(PS,st);};
   // scramble helper
@@ -4049,7 +4117,7 @@ const Puzzles = (function(){
     for(let i=0;i<n;i++){let mv;do{mv=P.moveNames[(Math.random()*P.moveNames.length)|0];}while(P.groupOf(mv)===lg);lg=P.groupOf(mv);seq.push(mv);s=P.apply(s,mv);}
     return {state:s,seq};}
   for(const P of [P2,PP,PS]) P.scramble=function(n){return scramble(P,n);};
-  return { '2x2':P2, 'pyraminx':PP, 'skewb':PS, order:['2x2','pyraminx','skewb'] };
+  return { '2x2':P2, '4x4':R4, '5x5':R5, 'pyraminx':PP, 'skewb':PS, order:['2x2','4x4','5x5','pyraminx','skewb'] };
 })();
 /* ============================================================
    GENERIC 3D PUZZLE VIEW  (cubes, tetrahedron, skewb)
@@ -4206,21 +4274,27 @@ function makeSolid3D(canvas){
   if(typeof Puzzles === 'undefined') return;
 
   const DISP = {
-    '2x2':     {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#d8d3c8'},
-    'skewb':   {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#d8d3c8'},
-    'pyraminx':{U:'#1fa64a',L:'#1e73e8',R:'#e22424',B:'#ffd400',X:'#d8d3c8'},
+    '2x2':     {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#dddaf0'},
+    '4x4':     {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#dddaf0'},
+    '5x5':     {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#dddaf0'},
+    'skewb':   {U:'#f7f7f3',R:'#e22424',F:'#1fa64a',D:'#ffd400',L:'#ff7a18',B:'#1e73e8',X:'#dddaf0'},
+    'pyraminx':{U:'#1fa64a',L:'#1e73e8',R:'#e22424',B:'#ffd400',X:'#dddaf0'},
   };
-  const ORDER  = {'2x2':['U','R','F','D','L','B'],'skewb':['U','R','F','D','L','B'],'pyraminx':['U','L','R','B']};
-  const TARGET = {'2x2':4,'skewb':5,'pyraminx':9};
+  const ORDER  = {'2x2':['U','R','F','D','L','B'],'4x4':['U','R','F','D','L','B'],'5x5':['U','R','F','D','L','B'],'skewb':['U','R','F','D','L','B'],'pyraminx':['U','L','R','B']};
+  const TARGET = {'2x2':4,'4x4':16,'5x5':25,'skewb':5,'pyraminx':9};
   const NAMES  = {U:'White',R:'Red',F:'Green',D:'Yellow',L:'Orange',B:'Blue'};
   const PYNAMES= {U:'Green',L:'Blue',R:'Red',B:'Yellow'};
   const HINT = {
     '2x2':'The Pocket Cube — corners only. Drag the 3D model to spin it; pick a color and click a sticker to paint (or use the flat map below).',
+    '4x4':'Rubik\u2019s Revenge. Right now the best way to see it work: press <b>Random scramble</b>, then <b>Solve it!</b>, and watch the 3D cube unwind itself. Drag to spin; the flat map below mirrors it.',
+    '5x5':'The Professor\u2019s Cube. Press <b>Random scramble</b>, then <b>Solve it!</b>, and watch the 3D cube unwind itself step by step. Drag to spin; the flat map below mirrors it.',
     'pyraminx':'Spin the 3D pyraminx and paint its stickers to match yours — the centre triangle of each face is fixed, so just colour the others. Then Solve and press ▶ Play to watch it untangle.',
     'skewb':'A corner-turning cube. Drag the 3D model to spin it and click stickers to paint (or use the flat map). Each face has a diamond plus four corners.',
   };
   const HELP = {
     '2x2':'Hold the cube the same way you painted it. <b>Turn the Up/Right/Front face</b> clockwise; an apostrophe (\u2032) means counter-clockwise, and 2 means a half turn. Or just press <b>\u25B6 Play</b> and watch the 3D cube solve itself.',
+    '4x4':'A <b>capital</b> letter (U/R/F/D/L/B) turns the outer face; a <b>lower-case</b> letter (u/r/f/d/l/b) turns the two layers together; \u2032 means counter-clockwise and 2 a half turn. Press <b>\u25B6 Play</b> to watch the 3D cube solve itself.',
+    '5x5':'A <b>capital</b> letter (U/R/F/D/L/B) turns the outer face; a <b>lower-case</b> letter (u/r/f/d/l/b) turns the two layers together; \u2032 means counter-clockwise and 2 a half turn. Press <b>\u25B6 Play</b> to watch the 3D cube solve itself.',
     'pyraminx':'Easiest way: press <b>\u25B6 Play</b> and watch the 3D model solve, one twist at a time. Reading the list: a <b>capital</b> letter (U/L/R/B) twists a whole corner; a <b>lower-case</b> letter (u/l/r/b) twists just its little tip; \u2032 means counter-clockwise. Each face is named by its centre colour — green is U(top), blue is L, red is R, yellow is B.',
     'skewb':'Press <b>\u25B6 Play</b> to watch the 3D model solve itself. In the list, each step rotates one corner of the cube (U/R/L/B); \u2032 means counter-clockwise.',
   };
@@ -4228,7 +4302,7 @@ function makeSolid3D(canvas){
   let curId='2x2', state='', sel='U', stepIdx=-1, solveSpeedMs=340;
   const $=id=>document.getElementById(id);
   function P(){ return Puzzles[curId]; }
-  function colOf(lbl){ return DISP[curId][lbl] || '#d8d3c8'; }
+  function colOf(lbl){ return DISP[curId][lbl] || '#dddaf0'; }
   function labelName(lbl){ return curId==='pyraminx'? PYNAMES[lbl] : NAMES[lbl]; }
 
   // ---------- 3D view (one persistent engine, reloaded per puzzle) ----------
@@ -4312,55 +4386,10 @@ function makeSolid3D(canvas){
   // ---------- solution ----------
   function clearSolution(){ $('puzSolution').innerHTML=''; $('puzStatus').textContent=''; $('puzStatus').className='status'; stepIdx=-1; }
   function renderSolutionP(seq){
-    const host=$('puzSolution'); host.innerHTML=''; const pz=P();
-    if(seq.length===0){ host.innerHTML='<div class="puz-readout">It\u2019s already solved! \uD83C\uDF89</div>'; return; }
-    const note=document.createElement('div'); note.className='puz-notation'; note.textContent=seq.join('  '); host.appendChild(note);
-    const readout=document.createElement('div'); readout.className='puz-readout'; host.appendChild(readout);
-    const row=document.createElement('div'); row.className='puz-step'; host.appendChild(row);
-    const chipsWrap=document.createElement('div'); chipsWrap.className='puz-step'; host.appendChild(chipsWrap);
-    const chips=seq.map((mv,k)=>{ const c=document.createElement('span'); c.className='puz-chip'; c.textContent=mv; chipsWrap.appendChild(c); return c; });
-    function mk(t){ const b=document.createElement('button'); b.className='btn'; b.textContent=t; return b; }
-    const moveText=k=>`<b>${k+1}/${seq.length}.</b> ${pz.describe(seq[k])} &nbsp;<span style="font-family:var(--font-mono);color:var(--muted)">(${seq[k]})</span>`;
-
-    if(cube3d){
-      // ---- 3D-driven self-solve player ----
-      const anim=cube3d.makeAnimator(state, {move:()=>solveSpeedMs});
-      // speed selector (applies live, even mid-play)
-      const speed=document.createElement('div'); speed.className='puz-speed';
-      speed.appendChild(Object.assign(document.createElement('span'),{className:'puz-speed-lbl',textContent:'Speed'}));
-      const SPEEDS=[['Slow',650],['Normal',340],['Fast',170],['Turbo',70]];
-      const sbtns=SPEEDS.map(([nm,ms])=>{ const b=document.createElement('button'); b.className='spd-btn'+(ms===solveSpeedMs?' on':''); b.textContent=nm;
-        b.onclick=()=>{ solveSpeedMs=ms; sbtns.forEach(x=>x.classList.remove('on')); b.classList.add('on'); }; speed.appendChild(b); return b; });
-      host.insertBefore(speed, row);
-      let idx=-1, lock=false;
-      const back=mk('\u25C0 Back'), next=mk('Next \u25B6'), play=mk('\u25B6 Play'), reset=mk('\u21BA Reset');
-      [play,next,back,reset].forEach(b=>row.appendChild(b));
-      function hl(){
-        chips.forEach((c,i)=>c.classList.toggle('on', i===idx));
-        readout.innerHTML = idx<0 ? 'Press <b>Play</b> to watch the cube solve itself.'
-          : (idx>=seq.length-1 ? '<b>Solved! \uD83C\uDF89</b>' : moveText(idx));
-        back.disabled=lock||idx<0; next.disabled=lock||idx>=seq.length-1;
-        play.disabled=lock||idx>=seq.length-1; reset.disabled=lock||idx<0;
-      }
-      async function fwd(){ if(lock||idx>=seq.length-1) return; lock=true; hl(); idx++; await anim.forward(seq[idx]); lock=false; hl(); }
-      async function bwd(){ if(lock||idx<0) return; lock=true; hl(); await anim.backward(seq[idx]); idx--; lock=false; hl(); }
-      next.onclick=fwd; back.onclick=bwd;
-      play.onclick=async()=>{ if(lock) return; while(idx<seq.length-1 && !lock){ await fwd(); } };
-      reset.onclick=()=>{ if(lock) return; anim.reset(); idx=-1; hl(); };
-      chips.forEach((c,k)=>c.onclick=async()=>{ if(lock) return; while(idx<k){ await fwd(); } while(idx>k){ await bwd(); } });
-      hl();
-    } else {
-      // ---- text stepper (pyraminx / skewb) ----
-      const back=mk('\u2190 Back'), next=mk('Next \u2192'); row.appendChild(back); row.appendChild(next);
-      let idx=0;
-      function setStep(k){ idx=Math.max(0,Math.min(seq.length-1,k));
-        chips.forEach((c,i)=>c.classList.toggle('on',i===idx));
-        readout.innerHTML=moveText(idx);
-        back.disabled=idx===0; next.disabled=idx===seq.length-1; }
-      back.onclick=()=>setStep(idx-1); next.onclick=()=>setStep(idx+1);
-      chips.forEach((c,k)=>c.onclick=()=>setStep(k));
-      setStep(0);
-    }
+    const host=$('puzSolution'); const pz=P();
+    // Use the exact same player as the 3x3 (Ready/Back/Play/Next/Restart + turtle\u2192hare speed slider).
+    const animator = cube3d ? cube3d.makeAnimator(state, {move:()=>moveDuration()}) : null;
+    renderSolution(host, seq.join(' '), { animator, describe:m=>pz.describe(m), noHead:true });
   }
 
   // ---------- actions ----------
@@ -4409,7 +4438,9 @@ function makeSolid3D(canvas){
       try{ sol=pz.solve(state); }catch(e){ sol=null; }
       if(sol===null){
         stt.className='status err';
-        stt.innerHTML='That arrangement isn\u2019t a state this puzzle can actually reach — there\u2019s likely a single twisted or swapped piece. Double-check the stickers against your real puzzle.';
+        stt.innerHTML = pz.reduction
+          ? 'For the 4\u00d74, I can currently solve cubes scrambled with <b>Random scramble</b> \u2014 press that, then <b>Solve it!</b>, to watch it solve. Solving a 4\u00d74 from colours you enter by hand (or from a photo) is the next piece I\u2019m building.'
+          : 'That arrangement isn\u2019t a state this puzzle can actually reach \u2014 there\u2019s likely a single twisted or swapped piece. Double-check the stickers against your real puzzle.';
         $('puzSolution').innerHTML=''; return;
       }
       stt.className='status ok';
